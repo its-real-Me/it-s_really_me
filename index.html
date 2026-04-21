@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proyecto Fragmentado</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c:#4ec9e8;--c2:rgba(78,201,232,.15);--c3:rgba(78,201,232,.06);
+  --bg:#030810;--t:#cde8f0;--td:rgba(180,220,235,.4);--tm:rgba(180,220,235,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',sans-serif;color:var(--t);overflow:hidden;}
+
+#bg-canvas{position:fixed;inset:0;z-index:0;}
+#vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 30%,rgba(3,8,16,.7) 100%);}
+#scanlines{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.035) 3px,rgba(0,0,0,.035) 4px);}
+
+#app{position:relative;z-index:10;width:100%;height:100vh;display:flex;align-items:center;justify-content:center;}
+
+#main{display:flex;flex-direction:column;align-items:flex-start;gap:0;}
+
+.sys-label{font-size:10px;letter-spacing:.4em;color:rgba(78,201,232,.5);text-transform:uppercase;margin-bottom:10px;}
+.game-title{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:300;font-size:clamp(42px,6vw,72px);color:#fff;line-height:1;letter-spacing:-.01em;text-shadow:0 0 60px rgba(78,201,232,.2);}
+.game-sub{font-size:11px;letter-spacing:.35em;color:var(--tm);text-transform:uppercase;margin-top:8px;margin-bottom:48px;}
+
+#menu{display:flex;flex-direction:column;gap:0;width:280px;}
+.mi{display:flex;align-items:center;gap:14px;padding:12px 0;cursor:pointer;border:none;background:transparent;text-align:left;width:100%;border-bottom:.5px solid rgba(255,255,255,.05);font-family:'Rajdhani',sans-serif;position:relative;overflow:hidden;}
+.mi:last-child{border-bottom:none;}
+.mi::before{content:'';position:absolute;left:0;top:0;height:100%;width:0;background:rgba(78,201,232,.04);transition:width .3s;}
+.mi:hover::before{width:100%;}
+.ml{width:16px;height:1px;background:rgba(255,255,255,.2);transition:all .3s;flex-shrink:0;}
+.mt{font-size:13px;letter-spacing:.18em;color:rgba(255,255,255,.4);text-transform:uppercase;transition:all .3s;}
+.mi:hover .ml,.mi.on .ml{width:28px;background:var(--c);}
+.mi:hover .mt,.mi.on .mt{color:#b8e8f8;letter-spacing:.22em;}
+.mi-badge{margin-left:auto;font-size:9px;letter-spacing:.15em;color:rgba(78,201,232,.4);background:rgba(78,201,232,.06);border:.5px solid rgba(78,201,232,.15);padding:3px 8px;border-radius:2px;}
+
+#ver{position:fixed;bottom:16px;left:32px;z-index:11;font-size:10px;color:rgba(255,255,255,.12);letter-spacing:.12em;}
+#status{position:fixed;bottom:16px;right:32px;z-index:11;font-size:10px;color:rgba(78,201,232,.25);letter-spacing:.08em;display:flex;align-items:center;gap:6px;}
+.dot-live{width:5px;height:5px;border-radius:50%;background:var(--c);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+#overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(3,8,16,.75);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .3s;}
+#overlay.open{opacity:1;pointer-events:all;}
+.panel{background:rgba(4,10,22,.97);border:.5px solid rgba(78,201,232,.2);max-width:360px;width:90%;padding:0;transform:translateY(12px);transition:transform .3s;position:relative;}
+#overlay.open .panel{transform:translateY(0);}
+.p-head{padding:20px 24px 16px;border-bottom:.5px solid rgba(78,201,232,.08);}
+.p-tag{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(78,201,232,.5);margin-bottom:6px;}
+.p-title{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:20px;font-weight:300;color:#fff;}
+.p-body{padding:20px 24px 24px;}
+.p-desc{font-size:12px;color:var(--td);line-height:1.85;margin-bottom:18px;}
+
+.input-wrap{position:relative;margin-bottom:8px;}
+.sys-input{width:100%;background:rgba(0,0,0,.5);border:.5px solid rgba(78,201,232,.2);padding:10px 14px;color:var(--c);font-family:'Rajdhani',monospace;font-size:14px;letter-spacing:.25em;text-transform:uppercase;outline:none;transition:border-color .2s;}
+.sys-input:focus{border-color:rgba(78,201,232,.5);}
+.sys-input::placeholder{color:rgba(78,201,232,.2);letter-spacing:.15em;}
+.input-cursor{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--c);animation:blink .8s step-start infinite;}
+@keyframes blink{50%{opacity:0}}
+
+.prog-wrap{height:2px;background:rgba(78,201,232,.08);margin-bottom:10px;overflow:hidden;}
+.prog-bar{height:100%;width:0%;background:var(--c);transition:width .5s;}
+.msg{font-size:10px;letter-spacing:.15em;text-align:center;height:14px;margin-bottom:14px;transition:color .2s;}
+
+.btn-row{display:flex;gap:8px;}
+.btn{flex:1;padding:10px;background:transparent;border:.5px solid rgba(78,201,232,.2);color:rgba(78,201,232,.6);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.btn:hover{background:rgba(78,201,232,.08);border-color:rgba(78,201,232,.45);color:#a8dcf0;}
+.btn.primary{border-color:rgba(78,201,232,.4);color:var(--c);}
+.btn.primary:hover{background:rgba(78,201,232,.12);}
+
+.s-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:.5px solid rgba(255,255,255,.04);font-size:12px;color:var(--td);}
+.s-row:last-of-type{border:none;}
+.tg{width:32px;height:18px;border-radius:9px;background:rgba(78,201,232,.1);border:.5px solid rgba(78,201,232,.2);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.tg.on{background:rgba(78,201,232,.35);}
+.tg::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.45);transition:transform .2s;}
+.tg.on::after{transform:translateX(14px);background:#9dd8ee;}
+
+.cred-block{margin-bottom:14px;}
+.cred-label{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:rgba(78,201,232,.5);margin-bottom:4px;}
+.cred-val{font-size:12px;color:var(--td);}
+.close-x{position:absolute;top:14px;right:16px;cursor:pointer;color:var(--tm);font-size:14px;line-height:1;transition:color .2s;background:none;border:none;font-family:inherit;}
+.close-x:hover{color:#fff;}
+
+#notif{position:fixed;bottom:50px;left:50%;transform:translateX(-50%) translateY(20px);z-index:99;background:rgba(4,10,22,.97);border:.5px solid rgba(78,201,232,.3);padding:10px 20px;font-size:11px;letter-spacing:.15em;color:var(--c);opacity:0;transition:all .4s;pointer-events:none;white-space:nowrap;}
+#notif.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+
+<div id="app">
+  <div id="main">
+    <!-- ════════════════════════════════════════════
+         TÍTULO PRINCIPAL
+         Cambia el texto de game-title para renombrar el proyecto.
+         game-sub muestra la versión — actualízala cuando avances.
+    ════════════════════════════════════════════ -->
+    <p class="sys-label">Sistema ARG — Acceso Restringido</p>
+    <h1 class="game-title">Proyecto<br>Fragmentado</h1>
+    <p class="game-sub">v0.2 alpha &nbsp;·&nbsp; ciclo 001</p>
+
+    <!-- ════════════════════════════════════════════
+         MENÚ DE NAVEGACIÓN
+         Cada botón tiene data-p="ID" que corresponde
+         a una función en el objeto PANELS del script.
+         No cambies los data-p salvo que añadas un nuevo panel.
+    ════════════════════════════════════════════ -->
+    <nav id="menu">
+      <button class="mi" data-p="play"><div class="ml"></div><span class="mt">Iniciar sesión</span><span class="mi-badge">REQUIERE CLAVE</span></button>
+      <button class="mi" data-p="personajes"><div class="ml"></div><span class="mt">Personajes</span><span class="mi-badge" id="badge-chars">0 / ?</span></button>
+      <button class="mi" data-p="continuar"><div class="ml"></div><span class="mt">Continuar</span></button>
+      <button class="mi" data-p="ajustes"><div class="ml"></div><span class="mt">Ajustes</span></button>
+      <button class="mi" data-p="creditos"><div class="ml"></div><span class="mt">Créditos</span></button>
+    </nav>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PIE DE PÁGINA — versión y estado en línea
+     Cambia el texto de #ver si cambias la versión.
+════════════════════════════════════════ -->
+<p id="ver">v0.2 — alpha</p>
+<div id="status"><div class="dot-live"></div>EN LÍNEA</div>
+
+<!-- OVERLAY PANEL (no editar la estructura) -->
+<div id="overlay">
+  <div class="panel" id="panel-box">
+    <button class="close-x" onclick="closePanel()">✕</button>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<div id="notif"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ▶ CÓDIGO PRINCIPAL DE INICIO DE SESIÓN
+//  Cambia "FRAGMENTO" por la clave que quieras usar.
+//  Este código es el que el jugador ingresa en "Iniciar sesión".
+// ══════════════════════════════════════════════════════════════
+const GAME_CODE = "FIND ME";
+
+// ══════════════════════════════════════════════════════════════
+//  ▶ CÓDIGOS DE PERSONAJES
+//  Formato: "CÓDIGO-QUE-ESCRIBE-EL-JUGADOR": "id-del-personaje"
+//
+//  El ID debe coincidir exactamente con el campo `id` del
+//  personaje en personajes.html (ver sección CHARACTERS allá).
+//
+//  Para agregar un personaje nuevo:
+//    1. Añade una línea aquí: "MI-CODIGO": "mi_id",
+//    2. Crea el bloque de personaje en personajes.html con el mismo id.
+//    3. Actualiza TOTAL_CHARS con el nuevo total.
+//
+//  Personajes actuales: 7 desbloqueables
+// ══════════════════════════════════════════════════════════════
+const CHAR_CODES = {
+  "ESPEJO-01": "valeria",    // Valeria Orin — Investigadora
+  "SOMBRA-02": "kieran",     // Kieran Voss — Agente encubierto
+  "LUZ-03":    "noa",        // Noa Seil — Archivista
+  "VACIO-04":  "seren",      // Seren Arc — Origen desconocido
+  "ECO-05":    "arlo",       // Arlo Seis — Mensajero
+  "REMEMBER":  "riven",      // Cami — código de desbloqueo: REMEMBER
+  "REPLACED":  "mara",       // No identificado — código: REPLACED
+};
+
+// Número total de personajes desbloqueables (para el badge del menú)
+// Actualiza esto si agregas más personajes.
+const TOTAL_CHARS = 7;
+
+// ══════════════════════════════════════════════════════════════
+//  ESTADO — guardado en localStorage
+//  No editar esta sección salvo que sepas lo que haces.
+// ══════════════════════════════════════════════════════════════
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem('pf_state')||'{}'); }
+  catch(e){ return {}; }
+}
+function saveState(s){ localStorage.setItem('pf_state', JSON.stringify(s)); }
+
+let STATE = loadState();
+if(!STATE.unlocked)    STATE.unlocked = [];
+if(!STATE.gameStarted) STATE.gameStarted = false;
+if(!STATE.unlockedDates) STATE.unlockedDates = {};
+saveState(STATE);
+
+function updateBadge(){
+  document.getElementById('badge-chars').textContent = STATE.unlocked.length + ' / ' + TOTAL_CHARS;
+}
+updateBadge();
+
+// ══════════════════════════════════════════════════════════════
+//  PANELES — contenido de cada ventana modal
+// ══════════════════════════════════════════════════════════════
+let attempts = 0;
+
+const PANELS = {
+  play(){
+    return `
+    <div class="p-head">
+      <p class="p-tag">Autenticación del sistema</p>
+      <p class="p-title">Ingresar clave de acceso</p>
+    </div>
+    <div class="p-body">
+      <!-- ── Cambia este texto si quieres otra descripción en el panel ── -->
+      <p class="p-desc">El sistema está encriptado. Ingresa la clave de inicio para acceder a los archivos clasificados.</p>
+      <div class="input-wrap">
+        <input id="code-input" class="sys-input" maxlength="16" placeholder="· · · · · · · ·" autocomplete="off" spellcheck="false"/>
+        <div class="input-cursor"></div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
+      <p class="msg" id="msg" style="color:rgba(78,201,232,.4)">ESPERANDO ENTRADA</p>
+      <div class="btn-row">
+        <button class="btn primary" onclick="checkGameCode()">Verificar →</button>
+        <button class="btn" onclick="closePanel()">Cancelar</button>
+      </div>
+    </div>`;
+  },
+  personajes(){
+    return `
+    <div class="p-head">
+      <p class="p-tag">Archivos de identidad</p>
+      <p class="p-title">Desbloquear personaje</p>
+    </div>
+    <div class="p-body">
+      <!-- ── Texto descriptivo del panel de personajes ── -->
+      <p class="p-desc">Cada sujeto tiene un código único. Encuéntralos en las pistas del ARG e ingrésalos aquí para acceder a su expediente completo.</p>
+      <div class="input-wrap">
+        <input id="char-input" class="sys-input" maxlength="20" placeholder="CÓDIGO — SUJETO" autocomplete="off" spellcheck="false"/>
+        <div class="input-cursor"></div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
+      <p class="msg" id="msg" style="color:rgba(78,201,232,.4)">ESPERANDO CÓDIGO</p>
+      <div class="btn-row">
+        <button class="btn primary" onclick="checkCharCode()">Acceder →</button>
+        <button class="btn" onclick="goToChars()">Ver desbloqueados</button>
+      </div>
+      ${STATE.unlocked.length>0?`<p style="font-size:10px;color:rgba(78,201,232,.3);letter-spacing:.12em;margin-top:12px;text-align:center">${STATE.unlocked.length} expediente(s) en tu archivo</p>`:''}
+    </div>`;
+  },
+  continuar(){
+    if(!STATE.gameStarted) return `
+    <div class="p-head"><p class="p-tag">Sin sesión activa</p><p class="p-title">No hay datos guardados</p></div>
+    <div class="p-body">
+      <p class="p-desc">No se encontró ninguna partida guardada en este dispositivo.</p>
+      <div class="btn-row">
+        <button class="btn primary" onclick="openPanel('play')">Nueva sesión →</button>
+        <button class="btn" onclick="closePanel()">Volver</button>
+      </div>
+    </div>`;
+    return `
+    <div class="p-head"><p class="p-tag">Sesión encontrada</p><p class="p-title">Continuar investigación</p></div>
+    <div class="p-body">
+      <p class="p-desc">Sesión activa detectada. ${STATE.unlocked.length} expediente(s) desbloqueado(s).</p>
+      <div class="btn-row">
+        <button class="btn primary" onclick="goToChars()">Abrir archivos →</button>
+        <button class="btn" onclick="closePanel()">Volver</button>
+      </div>
+    </div>`;
+  },
+  ajustes(){
+    return `
+    <div class="p-head"><p class="p-tag">Configuración</p><p class="p-title">Ajustes del sistema</p></div>
+    <div class="p-body">
+      <!-- ── Añade o quita filas de ajustes según necesites ── -->
+      <div class="s-row"><span>Efectos de glitch</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="s-row"><span>Animaciones de fondo</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="s-row"><span>Notificaciones ARG</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="s-row"><span>Modo alto contraste</span><div class="tg" onclick="this.classList.toggle('on')"></div></div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn primary" onclick="closePanel()">Guardar</button>
+        <button class="btn" style="color:rgba(255,80,80,.5);border-color:rgba(255,80,80,.2)" onclick="resetGame()">Resetear datos</button>
+      </div>
+    </div>`;
+  },
+  creditos(){
+    return `
+    <div class="p-head"><p class="p-tag">Información del proyecto</p><p class="p-title">Créditos</p></div>
+    <div class="p-body">
+      <!-- ══════════════════════════════════════════
+           ▶ EDITA AQUÍ TUS CRÉDITOS
+           Cambia los textos de cred-val con los nombres reales.
+           Puedes añadir más bloques copiando la estructura.
+      ══════════════════════════════════════════ -->
+      <div class="cred-block"><p class="cred-label">Diseño y narrativa</p><p class="cred-val">Tu nombre aquí</p></div>
+      <div class="cred-block"><p class="cred-label">Arte y personajes</p><p class="cred-val">Artista — tu nombre aquí</p></div>
+      <div class="cred-block"><p class="cred-label">Desarrollo web</p><p class="cred-val">Desarrollador — tu nombre aquí</p></div>
+      <div class="cred-block"><p class="cred-label">Versión</p><p class="cred-val">0.2 alpha — ciclo 001</p></div>
+      <div class="btn-row"><button class="btn primary" onclick="closePanel()">Cerrar</button></div>
+    </div>`;
+  }
+};
+
+// ══════════════════════════════════════════════
+//  LÓGICA DE PANELES (no editar)
+// ══════════════════════════════════════════════
+function openPanel(id){
+  document.querySelectorAll('.mi').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
+  document.getElementById('panel-content').innerHTML = PANELS[id]?PANELS[id]():'';
+  document.getElementById('overlay').classList.add('open');
+  triggerGlitch();
+  setTimeout(()=>{
+    const inp = document.getElementById('code-input')||document.getElementById('char-input');
+    if(inp){
+      inp.focus();
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ id==='play'?checkGameCode():checkCharCode(); }});
+    }
+  },200);
+}
+function closePanel(){
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('.mi').forEach(b=>b.classList.remove('on'));
+}
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget)closePanel(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')closePanel(); });
+
+function showMsg(text,color,progW,progColor){
+  const m=document.getElementById('msg'),p=document.getElementById('prog');
+  if(m){ m.textContent=text; m.style.color=color||'rgba(78,201,232,.5)'; }
+  if(p){ p.style.width=progW||'0%'; if(progColor)p.style.background=progColor; }
+}
+
+// ══════════════════════════════════════════════
+//  VERIFICACIÓN CÓDIGO DE JUEGO
+// ══════════════════════════════════════════════
+function checkGameCode(){
+  const inp = document.getElementById('code-input');
+  if(!inp) return;
+  const val = inp.value.trim().toUpperCase();
+  showMsg('VERIFICANDO...','rgba(78,201,232,.7)','60%');
+  setTimeout(()=>{
+    if(val === GAME_CODE){
+      showMsg('✓ ACCESO CONCEDIDO','rgba(80,220,130,.9)','100%','#4dd890');
+      triggerGlitch();
+      STATE.gameStarted = true; saveState(STATE);
+      setTimeout(()=>{ closePanel(); goToChars(); }, 900);
+    } else {
+      attempts++;
+      showMsg(`✗ CLAVE INVÁLIDA${attempts>=3?' — DEMASIADOS INTENTOS':''}`, 'rgba(220,80,80,.9)','100%','rgba(220,60,60,.8)');
+      inp.value=''; triggerGlitch();
+      setTimeout(()=>showMsg('ESPERANDO ENTRADA','rgba(78,201,232,.4)','0%','#4ec9e8'),1400);
+    }
+  },600);
+}
+
+// ══════════════════════════════════════════════
+//  VERIFICACIÓN CÓDIGO DE PERSONAJE
+// ══════════════════════════════════════════════
+function checkCharCode(){
+  const inp = document.getElementById('char-input');
+  if(!inp) return;
+  const val = inp.value.trim().toUpperCase();
+  showMsg('BUSCANDO EN ARCHIVOS...','rgba(78,201,232,.7)','60%');
+  setTimeout(()=>{
+    const charId = CHAR_CODES[val];
+    if(charId){
+      if(STATE.unlocked.includes(charId)){
+        showMsg('YA DESBLOQUEADO — ABRIENDO...','rgba(78,201,232,.7)','100%');
+        setTimeout(()=>{ closePanel(); goToChars(); },700);
+      } else {
+        STATE.unlocked.push(charId);
+        // Guarda la fecha de desbloqueo para mostrarlo en el perfil
+        STATE.unlockedDates[charId] = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+        saveState(STATE); updateBadge();
+        showMsg('✓ EXPEDIENTE DESBLOQUEADO','rgba(80,220,130,.9)','100%','#4dd890');
+        triggerGlitch(); notify('Nuevo expediente desbloqueado');
+        setTimeout(()=>{ closePanel(); goToChars(); },1000);
+      }
+    } else {
+      showMsg('✗ CÓDIGO NO RECONOCIDO','rgba(220,80,80,.9)','100%','rgba(220,60,60,.8)');
+      inp.value=''; triggerGlitch();
+      setTimeout(()=>showMsg('ESPERANDO CÓDIGO','rgba(78,201,232,.4)','0%','#4ec9e8'),1400);
+    }
+  },700);
+}
+
+function goToChars(){
+  window.location.href = 'personajes.html';
+}
+
+function resetGame(){
+  if(confirm('¿Borrar todos los datos guardados?')){
+    localStorage.removeItem('pf_state');
+    location.reload();
+  }
+}
+
+function notify(msg){
+  const n=document.getElementById('notif');
+  n.textContent=msg; n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),2800);
+}
+
+document.querySelectorAll('.mi').forEach(btn=>{
+  btn.addEventListener('click',()=>openPanel(btn.dataset.p));
+});
+
+// ══════════════════════════════════════════════
+//  FONDO ANIMADO — canvas con fragmentos y partículas
+// ══════════════════════════════════════════════
+const bgC=document.getElementById('bg-canvas');
+const bgX=bgC.getContext('2d');
+let shards=[],parts=[];
+
+function initBg(){
+  bgC.width=window.innerWidth; bgC.height=window.innerHeight;
+  shards=Array.from({length:24},mkShard);
+  parts=Array.from({length:90},mkPart);
+}
+function mkShard(){
+  const W=bgC.width,H=bgC.height;
+  return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:.25+Math.random()*.65,rot:Math.random()*360,rs:(Math.random()-.5)*1.1,sz:7+Math.random()*26,op:.08+Math.random()*.28};
+}
+function mkPart(){
+  const W=bgC.width,H=bgC.height;
+  return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.45,vy:(Math.random()-.5)*.45,r:.8+Math.random()*2.2,op:.06+Math.random()*.25,ph:Math.random()*Math.PI*2};
+}
+
+let gf=0;
+function triggerGlitch(){gf=10+Math.floor(Math.random()*8);}
+
+function drawBg(t){
+  const W=bgC.width,H=bgC.height;
+  if(!W||!H) return;
+  bgX.fillStyle='rgba(3,8,16,.2)'; bgX.fillRect(0,0,W,H);
+  parts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.ph+=.018;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    const op=p.op*(.5+.5*Math.sin(p.ph));
+    bgX.beginPath(); bgX.arc(p.x,p.y,p.r,0,Math.PI*2);
+    bgX.fillStyle=`rgba(78,201,232,${op})`; bgX.fill();
+  });
+  shards.forEach(s=>{
+    s.y+=s.vy; s.x+=s.vx; s.rot+=s.rs;
+    if(s.y>H+50){ Object.assign(s,mkShard(),{y:-50,x:Math.random()*W}); }
+    bgX.save(); bgX.translate(s.x,s.y); bgX.rotate(s.rot*Math.PI/180);
+    bgX.globalAlpha=s.op;
+    bgX.fillStyle='rgba(100,190,220,.1)';
+    bgX.strokeStyle='rgba(78,201,232,.45)'; bgX.lineWidth=.7;
+    const z=s.sz;
+    bgX.beginPath();
+    bgX.moveTo(0,-z); bgX.lineTo(z*.65,-z*.1); bgX.lineTo(z*.45,z*.55);
+    bgX.lineTo(-z*.25,z*.9); bgX.lineTo(-z*.65,z*.05); bgX.closePath();
+    bgX.fill(); bgX.stroke(); bgX.restore();
+  });
+  const pulse=.18+.1*Math.sin(t*.0007);
+  const g=bgX.createRadialGradient(W/2,H*.45,0,W/2,H*.45,W*.45);
+  g.addColorStop(0,`rgba(18,60,100,${pulse})`); g.addColorStop(1,'transparent');
+  bgX.fillStyle=g; bgX.fillRect(0,0,W,H);
+  if(gf>0){
+    for(let i=0;i<3;i++){
+      const y=Math.random()*H, h2=4+Math.random()*18;
+      bgX.save(); bgX.globalAlpha=.15+Math.random()*.2;
+      bgX.fillStyle=Math.random()>.5?'rgba(0,200,255,1)':'rgba(255,40,100,1)';
+      bgX.globalCompositeOperation='screen';
+      bgX.fillRect((Math.random()-.5)*30,y,W,h2); bgX.restore();
+    }
+    gf--;
+  }
+}
+
+window.addEventListener('resize',initBg);
+initBg();
+(function loop(t){ drawBg(t); requestAnimationFrame(loop); })();
+</script>
+</body>
+</html>
