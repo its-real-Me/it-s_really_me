@@ -94,21 +94,10 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 
 <div id="app">
   <div id="main">
-    <!-- ════════════════════════════════════════════
-         TÍTULO PRINCIPAL
-         Cambia el texto de game-title para renombrar el proyecto.
-         game-sub muestra la versión — actualízala cuando avances.
-    ════════════════════════════════════════════ -->
     <p class="sys-label">Sistema ARG — Acceso Restringido</p>
     <h1 class="game-title">Proyecto<br>Fragmentado</h1>
     <p class="game-sub">v0.2 alpha &nbsp;·&nbsp; ciclo 001</p>
 
-    <!-- ════════════════════════════════════════════
-         MENÚ DE NAVEGACIÓN
-         Cada botón tiene data-p="ID" que corresponde
-         a una función en el objeto PANELS del script.
-         No cambies los data-p salvo que añadas un nuevo panel.
-    ════════════════════════════════════════════ -->
     <nav id="menu">
       <button class="mi" data-p="play"><div class="ml"></div><span class="mt">Iniciar sesión</span><span class="mi-badge">REQUIERE CLAVE</span></button>
       <button class="mi" data-p="personajes"><div class="ml"></div><span class="mt">Personajes</span><span class="mi-badge" id="badge-chars">0 / ?</span></button>
@@ -119,14 +108,9 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
   </div>
 </div>
 
-<!-- ════════════════════════════════════════
-     PIE DE PÁGINA — versión y estado en línea
-     Cambia el texto de #ver si cambias la versión.
-════════════════════════════════════════ -->
 <p id="ver">v0.2 — alpha</p>
 <div id="status"><div class="dot-live"></div>EN LÍNEA</div>
 
-<!-- OVERLAY PANEL (no editar la estructura) -->
 <div id="overlay">
   <div class="panel" id="panel-box">
     <button class="close-x" onclick="closePanel()">✕</button>
@@ -139,24 +123,11 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 <script>
 // ══════════════════════════════════════════════════════════════
 //  ▶ CÓDIGO PRINCIPAL DE INICIO DE SESIÓN
-//  Cambia "FRAGMENTO" por la clave que quieras usar.
-//  Este código es el que el jugador ingresa en "Iniciar sesión".
 // ══════════════════════════════════════════════════════════════
 const GAME_CODE = "FIND ME";
 
 // ══════════════════════════════════════════════════════════════
 //  ▶ CÓDIGOS DE PERSONAJES
-//  Formato: "CÓDIGO-QUE-ESCRIBE-EL-JUGADOR": "id-del-personaje"
-//
-//  El ID debe coincidir exactamente con el campo `id` del
-//  personaje en personajes.html (ver sección CHARACTERS allá).
-//
-//  Para agregar un personaje nuevo:
-//    1. Añade una línea aquí: "MI-CODIGO": "mi_id",
-//    2. Crea el bloque de personaje en personajes.html con el mismo id.
-//    3. Actualiza TOTAL_CHARS con el nuevo total.
-//
-//  Personajes actuales: 7 desbloqueables
 // ══════════════════════════════════════════════════════════════
 const CHAR_CODES = {
   "ESPEJO-01":"valeria","SOMBRA-02":"kieran","LUZ-03":"noa",
@@ -169,12 +140,10 @@ const CHAR_CODES = {
   "CANNIBAL":"subject23","SCAPE":"subject24","RUN":"subject25","STARS":"subject26",
 };
 
-// Número total de personajes desbloqueables (para el badge del menú)
-// Actualiza esto si agregas más personajes.
 const TOTAL_CHARS = 26;
+
 // ══════════════════════════════════════════════════════════════
 //  ESTADO — guardado en localStorage
-//  No editar esta sección salvo que sepas lo que haces.
 // ══════════════════════════════════════════════════════════════
 function loadState(){
   try{ return JSON.parse(localStorage.getItem('pf_state')||'{}'); }
@@ -206,7 +175,6 @@ const PANELS = {
       <p class="p-title">Ingresar clave de acceso</p>
     </div>
     <div class="p-body">
-      <!-- ── Cambia este texto si quieres otra descripción en el panel ── -->
       <p class="p-desc">El sistema está encriptado. Ingresa la clave de inicio para acceder a los archivos clasificados.</p>
       <div class="input-wrap">
         <input id="code-input" class="sys-input" maxlength="16" placeholder="· · · · · · · ·" autocomplete="off" spellcheck="false"/>
@@ -227,7 +195,6 @@ const PANELS = {
       <p class="p-title">Desbloquear personaje</p>
     </div>
     <div class="p-body">
-      <!-- ── Texto descriptivo del panel de personajes ── -->
       <p class="p-desc">Cada sujeto tiene un código único. Encuéntralos en las pistas del ARG e ingrésalos aquí para acceder a su expediente completo.</p>
       <div class="input-wrap">
         <input id="char-input" class="sys-input" maxlength="20" placeholder="CÓDIGO — SUJETO" autocomplete="off" spellcheck="false"/>
@@ -266,7 +233,6 @@ const PANELS = {
     return `
     <div class="p-head"><p class="p-tag">Configuración</p><p class="p-title">Ajustes del sistema</p></div>
     <div class="p-body">
-      <!-- ── Añade o quita filas de ajustes según necesites ── -->
       <div class="s-row"><span>Efectos de glitch</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
       <div class="s-row"><span>Animaciones de fondo</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
       <div class="s-row"><span>Notificaciones ARG</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
@@ -281,11 +247,6 @@ const PANELS = {
     return `
     <div class="p-head"><p class="p-tag">Información del proyecto</p><p class="p-title">Créditos</p></div>
     <div class="p-body">
-      <!-- ══════════════════════════════════════════
-           ▶ EDITA AQUÍ TUS CRÉDITOS
-           Cambia los textos de cred-val con los nombres reales.
-           Puedes añadir más bloques copiando la estructura.
-      ══════════════════════════════════════════ -->
       <div class="cred-block"><p class="cred-label">Diseño y narrativa</p><p class="cred-val">Cami</p></div>
       <div class="cred-block"><p class="cred-label">Arte y personajes</p><p class="cred-val">Artista - Cami</p></div>
       <div class="cred-block"><p class="cred-label">Desarrollo web</p><p class="cred-val">Desarrollador — Yo w (Maci)</p></div>
@@ -295,9 +256,9 @@ const PANELS = {
   }
 };
 
-// ══════════════════════════════════════════════
-//  LÓGICA DE PANELES (no editar)
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  LÓGICA DE PANELES
+// ══════════════════════════════════════════════════════════════
 function openPanel(id){
   document.querySelectorAll('.mi').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   document.getElementById('panel-content').innerHTML = PANELS[id]?PANELS[id]():'';
@@ -324,9 +285,9 @@ function showMsg(text,color,progW,progColor){
   if(p){ p.style.width=progW||'0%'; if(progColor)p.style.background=progColor; }
 }
 
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 //  VERIFICACIÓN CÓDIGO DE JUEGO
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 function checkGameCode(){
   const inp = document.getElementById('code-input');
   if(!inp) return;
@@ -347,9 +308,9 @@ function checkGameCode(){
   },600);
 }
 
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 //  VERIFICACIÓN CÓDIGO DE PERSONAJE
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 function checkCharCode(){
   const inp = document.getElementById('char-input');
   if(!inp) return;
@@ -363,7 +324,6 @@ function checkCharCode(){
         setTimeout(()=>{ closePanel(); goToChars(); },700);
       } else {
         STATE.unlocked.push(charId);
-        // Guarda la fecha de desbloqueo para mostrarlo en el perfil
         STATE.unlockedDates[charId] = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
         saveState(STATE); updateBadge();
         showMsg('✓ EXPEDIENTE DESBLOQUEADO','rgba(80,220,130,.9)','100%','#4dd890');
@@ -399,9 +359,9 @@ document.querySelectorAll('.mi').forEach(btn=>{
   btn.addEventListener('click',()=>openPanel(btn.dataset.p));
 });
 
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 //  FONDO ANIMADO — canvas con fragmentos y partículas
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 const bgC=document.getElementById('bg-canvas');
 const bgX=bgC.getContext('2d');
 let shards=[],parts=[];
