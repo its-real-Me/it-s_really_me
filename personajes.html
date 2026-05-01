@@ -20,6 +20,7 @@ html,body{width:100%;min-height:100vh;background:var(--bg);font-family:'Rajdhani
 
 #app{position:relative;z-index:10;display:flex;height:100vh;overflow:hidden;}
 
+/* ── SIDEBAR ── */
 #sidebar{width:280px;min-width:280px;height:100vh;overflow-y:auto;border-right:.5px solid var(--bdr);display:flex;flex-direction:column;background:rgba(3,8,16,.6);backdrop-filter:blur(8px);}
 #sidebar::-webkit-scrollbar{width:3px;}
 #sidebar::-webkit-scrollbar-thumb{background:rgba(78,201,232,.2);}
@@ -62,6 +63,7 @@ html,body{width:100%;min-height:100vh;background:var(--bg);font-family:'Rajdhani
 
 .lock-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--tm);}
 
+/* ── PANEL DETALLE ── */
 #detail{flex:1;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
 #detail::-webkit-scrollbar{width:3px;}
 #detail::-webkit-scrollbar-thumb{background:rgba(78,201,232,.15);}
@@ -129,8 +131,7 @@ html,body{width:100%;min-height:100vh;background:var(--bg);font-family:'Rajdhani
 .lv-icon{font-size:28px;color:var(--tm);}
 .lv-title{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;color:rgba(255,255,255,.3);}
 .lv-desc{font-size:11px;letter-spacing:.15em;color:var(--tm);text-align:center;line-height:1.8;max-width:300px;}
-.lv-input-wrap{width:100%;max-width:300px;}
-.sys-input{width:100%;background:rgba(0,0,0,.4);border:.5px solid rgba(78,201,232,.2);padding:10px 14px;color:var(--c);font-family:'Rajdhani',monospace;font-size:13px;letter-spacing:.22em;text-transform:uppercase;outline:none;transition:border-color .2s;display:block;}
+.sys-input{width:100%;max-width:300px;background:rgba(0,0,0,.4);border:.5px solid rgba(78,201,232,.2);padding:10px 14px;color:var(--c);font-family:'Rajdhani',monospace;font-size:13px;letter-spacing:.22em;text-transform:uppercase;outline:none;transition:border-color .2s;display:block;}
 .sys-input:focus{border-color:rgba(78,201,232,.4);}
 .sys-input::placeholder{color:rgba(78,201,232,.2);}
 .lv-msg{font-size:10px;letter-spacing:.15em;color:var(--tm);text-align:center;height:14px;}
@@ -907,120 +908,165 @@ const CHARACTERS = [
 
 ];
 
-// ── ESTADO ──
+// ══════════════════════════════════════════════════════════════════════════
+//  ESTADO
+// ══════════════════════════════════════════════════════════════════════════
 const CHAR_CODES = {};
 CHARACTERS.forEach(c=>{ if(c.code) CHAR_CODES[c.code.toUpperCase()]=c.id; });
 
-function loadState(){try{return JSON.parse(localStorage.getItem('pf_state')||'{}');}catch(e){return {};}}
-function saveState(s){localStorage.setItem('pf_state',JSON.stringify(s));}
-let STATE=loadState();
-if(!STATE.unlocked) STATE.unlocked=[];
-if(!STATE.unlockedDates) STATE.unlockedDates={};
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem('pf_state')||'{}'); }
+  catch(e){ return {}; }
+}
+function saveState(s){ localStorage.setItem('pf_state', JSON.stringify(s)); }
 
-let activeFilter='all';
-let selectedChar=null;
+let STATE = loadState();
+if(!STATE.unlocked)      STATE.unlocked = [];
+if(!STATE.unlockedDates) STATE.unlockedDates = {};
 
-// ── RENDER SIDEBAR ──
+let activeFilter = 'all';
+let selectedChar = null;
+
+// ══════════════════════════════════════════════════════════════════════════
+//  RENDER SIDEBAR
+// ══════════════════════════════════════════════════════════════════════════
 function renderList(){
-  const list=document.getElementById('char-list');
-  list.innerHTML='';
-  const unlocked=STATE.unlocked.length;
-  const total=CHARACTERS.length;
-  document.getElementById('sb-count').textContent=`${unlocked} / ${total} expedientes`;
+  const list = document.getElementById('char-list');
+  list.innerHTML = '';
+  const unlocked = STATE.unlocked.length;
+  const total = CHARACTERS.length;
+  document.getElementById('sb-count').textContent = `${unlocked} / ${total} expedientes`;
 
   CHARACTERS.forEach(char=>{
-    const isUnlocked=STATE.unlocked.includes(char.id);
-    if(activeFilter!=='all'){
-      if(!isUnlocked||char.status!==activeFilter) return;
+    const isUnlocked = STATE.unlocked.includes(char.id);
+    if(activeFilter !== 'all'){
+      if(!isUnlocked || char.status !== activeFilter) return;
     }
-    const item=document.createElement('div');
-    item.className='char-item'+(isUnlocked?'':' locked')+(selectedChar?.id===char.id?' active':'');
-    item.dataset.id=char.id;
-    const statusLabel={'vivo':'Vivo','desaparecido':'Desap.','muerto':'Muerto','desconocido':'?','fragmentado':'Frag.'}[char.status]||'?';
-    item.innerHTML=`
+    const item = document.createElement('div');
+    item.className = 'char-item' + (isUnlocked ? '' : ' locked') + (selectedChar?.id === char.id ? ' active' : '');
+    item.dataset.id = char.id;
+
+    const statusLabel = {
+      vivo:'Vivo', desaparecido:'Desap.', muerto:'Muerto',
+      desconocido:'?', fragmentado:'Frag.'
+    }[char.status] || '?';
+
+    // Nombre y rol visibles solo si está desbloqueado
+    const displayName   = isUnlocked ? char.name   : '??? ????';
+    const displayRole   = isUnlocked ? char.role   : 'Clasificado';
+    const firstLetter   = isUnlocked ? (char.name ? char.name[0] : '?') : '?';
+
+    item.innerHTML = `
       <div class="char-avatar">
         <canvas width="38" height="38" data-charid="${char.id}"></canvas>
-        <span class="char-avatar-letter">${isUnlocked?(char.name&&char.name!=='???'?char.name[0]:'?'):'?'}</span>
+        ${isUnlocked && char.image ? `<img class="char-avatar-img" src="${char.image}" alt="${char.name}" loading="lazy"/>` : ''}
+        <span class="char-avatar-letter">${firstLetter}</span>
       </div>
       <div class="char-info">
-        <p class="char-name">${isUnlocked&&char.name&&char.name!=='???'?char.name:'??? ????'}</p>
-        <p class="char-role">${isUnlocked&&char.role?char.role:'Clasificado'}</p>
+        <p class="char-name">${displayName}</p>
+        <p class="char-role">${displayRole}</p>
       </div>
       <span class="char-status status-${char.status}">${statusLabel}</span>
-      ${!isUnlocked?'<span class="lock-icon">🔒</span>':''}`;
-    item.addEventListener('click',()=>selectChar(char,isUnlocked));
+      ${!isUnlocked ? '<span class="lock-icon">🔒</span>' : ''}`;
+
+    item.addEventListener('click', ()=>selectChar(char, isUnlocked));
     list.appendChild(item);
-    drawMiniAvatar(item.querySelector('canvas'),char,isUnlocked);
+    drawMiniAvatar(item.querySelector('canvas'), char, isUnlocked);
   });
 }
 
-function drawMiniAvatar(c,char,unlocked){
-  if(!c)return;
-  const ctx=c.getContext('2d'),w=38,h=38;
-  const col=char.accentColor||'#4ec9e8';
-  ctx.fillStyle='rgba(4,10,22,1)';ctx.fillRect(0,0,w,h);
+function drawMiniAvatar(c, char, unlocked){
+  if(!c) return;
+  const ctx = c.getContext('2d'), w = 38, h = 38;
+  const col = char.accentColor || '#4ec9e8';
+  ctx.fillStyle = 'rgba(4,10,22,1)';
+  ctx.fillRect(0,0,w,h);
   if(unlocked){
-    const g=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*.7);
-    g.addColorStop(0,col+'22');g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-    ctx.strokeStyle=col+'40';ctx.lineWidth=.5;ctx.strokeRect(0,0,w,h);
+    const g = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*.7);
+    g.addColorStop(0, col+'22');
+    g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle = col+'40';
+    ctx.lineWidth = .5;
+    ctx.strokeRect(0,0,w,h);
   } else {
-    ctx.fillStyle='rgba(255,255,255,.04)';
-    for(let i=0;i<3;i++){ctx.fillRect(Math.random()*w,Math.random()*h,Math.random()*10+2,1);}
+    ctx.fillStyle = 'rgba(255,255,255,.04)';
+    for(let i=0;i<3;i++){
+      ctx.fillRect(Math.random()*w, Math.random()*h, Math.random()*10+2, 1);
+    }
   }
 }
 
-// ── SELECCIONAR PERSONAJE ──
-function selectChar(char,isUnlocked){
-  selectedChar=char;
-  document.querySelectorAll('.char-item').forEach(i=>i.classList.toggle('active',i.dataset.id===char.id));
-  document.getElementById('empty-state').style.display='none';
+// ══════════════════════════════════════════════════════════════════════════
+//  SELECCIONAR PERSONAJE
+// ══════════════════════════════════════════════════════════════════════════
+function selectChar(char, isUnlocked){
+  selectedChar = char;
+  document.querySelectorAll('.char-item').forEach(i=>i.classList.toggle('active', i.dataset.id===char.id));
+  document.getElementById('empty-state').style.display = 'none';
+
   if(isUnlocked){
-    document.getElementById('locked-view').style.display='none';
-    document.getElementById('profile').style.display='flex';
+    document.getElementById('locked-view').style.display = 'none';
+    document.getElementById('profile').style.display = 'flex';
     renderProfile(char);
   } else {
-    document.getElementById('profile').style.display='none';
-    document.getElementById('locked-view').style.display='flex';
-    document.getElementById('lv-name').textContent='Expediente clasificado';
-    document.getElementById('lv-input').value='';
-    document.getElementById('lv-msg').textContent='';
-    const inp=document.getElementById('lv-input');
-    inp.onkeydown=null;
-    inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkLvCode();});
+    document.getElementById('profile').style.display = 'none';
+    document.getElementById('locked-view').style.display = 'flex';
+    document.getElementById('lv-name').textContent = 'Expediente clasificado';
+    document.getElementById('lv-input').value = '';
+    document.getElementById('lv-msg').textContent = '';
+    const inp = document.getElementById('lv-input');
+    inp.onkeydown = null;
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkLvCode(); });
   }
 }
 
-// ── RENDER PERFIL ──
+// ══════════════════════════════════════════════════════════════════════════
+//  RENDER PERFIL
+// ══════════════════════════════════════════════════════════════════════════
 function renderProfile(char){
-  document.getElementById('p-codename').textContent=char.codename;
-  document.getElementById('p-name').textContent=(char.name&&char.name!=='???')?char.name:'???';
-  document.getElementById('p-role').textContent=char.role||'';
-  document.getElementById('p-id').textContent=char.codename;
-  const dateStr=STATE.unlockedDates?.[char.id]||'Expediente archivado';
-  document.getElementById('p-unlock-date').textContent=`Desbloqueado: ${dateStr}`;
-  const badge=document.getElementById('p-status-badge');
-  badge.textContent={'vivo':'● Vivo','desaparecido':'◈ Desaparecido','muerto':'✕ Muerto','desconocido':'? Desconocido','fragmentado':'◇ Fragmentado'}[char.status]||char.status;
-  badge.className='p-status-badge status-'+char.status;
+  document.getElementById('p-codename').textContent = char.codename;
+  document.getElementById('p-name').textContent     = char.name || '???';
+  document.getElementById('p-role').textContent     = char.role || '';
+  document.getElementById('p-id').textContent       = char.codename;
 
-  const hc=document.getElementById('hero-canvas');
-  hc.width=hc.offsetWidth||800;hc.height=220;
-  drawHero(hc,char);
-  const heroImg=document.getElementById('hero-img');
-  const colorOverlay=document.getElementById('hero-color-overlay');
+  const dateStr = STATE.unlockedDates?.[char.id] || 'Expediente archivado';
+  document.getElementById('p-unlock-date').textContent = `Desbloqueado: ${dateStr}`;
+
+  const badge = document.getElementById('p-status-badge');
+  badge.textContent = {
+    vivo:'● Vivo', desaparecido:'◈ Desaparecido', muerto:'✕ Muerto',
+    desconocido:'? Desconocido', fragmentado:'◇ Fragmentado'
+  }[char.status] || char.status;
+  badge.className = 'p-status-badge status-' + char.status;
+
+  // Hero canvas + imagen real
+  const hc = document.getElementById('hero-canvas');
+  hc.width  = hc.offsetWidth || 800;
+  hc.height = 220;
+  drawHero(hc, char);
+
+  const heroImg      = document.getElementById('hero-img');
+  const colorOverlay = document.getElementById('hero-color-overlay');
   if(char.image){
-    heroImg.classList.remove('loaded');heroImg.src=char.image;heroImg.alt=char.name||'';
-    colorOverlay.style.background=char.accentColor||'transparent';
+    heroImg.classList.remove('loaded');
+    heroImg.src = char.image;
+    heroImg.alt = char.name || '';
+    colorOverlay.style.background = char.accentColor || 'transparent';
   } else {
-    heroImg.src='';heroImg.classList.remove('loaded');colorOverlay.style.background='transparent';
+    heroImg.src = '';
+    heroImg.classList.remove('loaded');
+    colorOverlay.style.background = 'transparent';
   }
 
-  const body=document.getElementById('p-body');
-  const loreHtml=char.lore&&char.lore.length
-    ?char.lore.map(p=>`<p>${p}</p>`).join('')
-    :'<p style="font-style:italic;opacity:.4">Historia no disponible.</p>';
+  // Cuerpo del perfil
+  const body = document.getElementById('p-body');
+  const loreHtml = (char.lore && char.lore.length)
+    ? char.lore.map(p=>`<p>${p}</p>`).join('')
+    : '<p style="font-style:italic;opacity:.4">Historia no disponible.</p>';
 
-  body.innerHTML=`
+  body.innerHTML = `
     <div class="p-section">
       <p class="sec-label">Historia</p>
       <div class="p-lore">${loreHtml}</div>
@@ -1031,358 +1077,207 @@ function renderProfile(char){
     </div>
     <div class="p-section-half">
       <p class="sec-label">Datos del expediente</p>
-      <div class="quick-info">${(char.quickInfo||[]).map(q=>`
-        <div class="qi"><p class="qi-l">${q.l}</p><p class="qi-v">${q.v}</p></div>`).join('')}
+      <div class="quick-info">
+        ${(char.quickInfo||[]).map(q=>`
+          <div class="qi">
+            <p class="qi-l">${q.l}</p>
+            <p class="qi-v">${q.v}</p>
+          </div>`).join('')}
       </div>
     </div>
     <div class="p-section">
       <p class="sec-label">Fragmentos de memoria</p>
-      <div class="fragments-list">${(char.fragments||[]).length?char.fragments.map(f=>`
-        <div class="fragment${f.locked?' locked-frag':''}">
-          <p class="frag-num">${f.id}</p>
-          ${f.locked?`<p class="frag-lock">${f.text}</p>`:`<p class="frag-text">${f.text}</p>`}
-        </div>`).join(''):'<p style="font-size:11px;opacity:.3;font-style:italic">Sin fragmentos registrados.</p>'}
+      <div class="fragments-list">
+        ${(char.fragments||[]).length
+          ? char.fragments.map(f=>`
+            <div class="fragment${f.locked?' locked-frag':''}">
+              <p class="frag-num">${f.id}</p>
+              ${f.locked
+                ? `<p class="frag-lock">${f.text}</p>`
+                : `<p class="frag-text">${f.text}</p>`}
+            </div>`).join('')
+          : '<p style="font-size:11px;opacity:.3;font-style:italic">Sin fragmentos registrados.</p>'}
       </div>
     </div>
-    ${char.relations&&char.relations.length?`
+    ${(char.relations && char.relations.length) ? `
     <div class="p-section">
       <p class="sec-label">Relaciones conocidas</p>
-      <div class="rels">${char.relations.map(r=>`
-        <div class="rel"><span class="rel-name">${r.name}</span><span class="rel-type">${r.type}</span></div>`).join('')}
+      <div class="rels">
+        ${char.relations.map(r=>`
+          <div class="rel">
+            <span class="rel-name">${r.name}</span>
+            <span class="rel-type">${r.type}</span>
+          </div>`).join('')}
       </div>
-    </div>`:''}`;
+    </div>` : ''}`;
 
-  const sg=document.getElementById('stats-grid');
-  if(sg)(char.stats||[]).forEach(s=>{
-    const row=document.createElement('div');row.className='stat-row';
-    row.innerHTML=`<span class="stat-name">${s.name}</span><div class="stat-bar-wrap"><div class="stat-bar" style="width:0%;background:${s.color}"></div></div><span class="stat-val">${s.val}</span>`;
+  // Animar stats
+  const sg = document.getElementById('stats-grid');
+  if(sg) (char.stats||[]).forEach(s=>{
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <span class="stat-name">${s.name}</span>
+      <div class="stat-bar-wrap">
+        <div class="stat-bar" style="width:0%;background:${s.color}"></div>
+      </div>
+      <span class="stat-val">${s.val}</span>`;
     sg.appendChild(row);
-    setTimeout(()=>{ const bar=row.querySelector('.stat-bar'); if(bar)bar.style.width=s.val+'%'; },100);
+    setTimeout(()=>{
+      const bar = row.querySelector('.stat-bar');
+      if(bar) bar.style.width = s.val + '%';
+    }, 100);
   });
 
-  document.getElementById('detail').scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('detail').scrollTo({top:0, behavior:'smooth'});
 }
 
-function drawHero(c,char){
-  const w=c.width,h=c.height;if(!w||!h)return;
-  const ctx=c.getContext('2d');
-  const [bg1,bg2,accent]=char.heroColor||['#04090f','#08121e','#4ec9e8'];
-  ctx.fillStyle=bg1;ctx.fillRect(0,0,w,h);
-  const g=ctx.createLinearGradient(0,0,w,h);
-  g.addColorStop(0,bg2);g.addColorStop(1,bg1);
-  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle=accent+'18';ctx.lineWidth=1;
-  const lines=[[.1,.0,.35,.8],[.45,.05,.6,.95],[.72,.1,.5,.9],[.85,.0,.95,.7]];
-  lines.forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1*w,y1*h);ctx.lineTo(x2*w,y2*h);ctx.stroke();});
-  const gr=ctx.createRadialGradient(w*.15,h*.5,0,w*.15,h*.5,w*.4);
-  gr.addColorStop(0,accent+'15');gr.addColorStop(1,'transparent');
-  ctx.fillStyle=gr;ctx.fillRect(0,0,w,h);
-  ctx.fillStyle=accent+'30';
-  for(let i=0;i<20;i++){const px=Math.random()*w,py=Math.random()*h,ps=Math.random()*2+.5;ctx.beginPath();ctx.arc(px,py,ps,0,Math.PI*2);ctx.fill();}
+function drawHero(c, char){
+  const w = c.width, h = c.height;
+  if(!w || !h) return;
+  const ctx = c.getContext('2d');
+  const [bg1,bg2,accent] = char.heroColor || ['#04090f','#08121e','#4ec9e8'];
+  ctx.fillStyle = bg1;
+  ctx.fillRect(0,0,w,h);
+  const g = ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0, bg2);
+  g.addColorStop(1, bg1);
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = accent+'18';
+  ctx.lineWidth = 1;
+  [[.1,.0,.35,.8],[.45,.05,.6,.95],[.72,.1,.5,.9],[.85,.0,.95,.7]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1*w,y1*h); ctx.lineTo(x2*w,y2*h); ctx.stroke();
+  });
+  const gr = ctx.createRadialGradient(w*.15,h*.5,0,w*.15,h*.5,w*.4);
+  gr.addColorStop(0, accent+'15');
+  gr.addColorStop(1, 'transparent');
+  ctx.fillStyle = gr;
+  ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = accent+'30';
+  for(let i=0;i<20;i++){
+    const px=Math.random()*w, py=Math.random()*h, ps=Math.random()*2+.5;
+    ctx.beginPath(); ctx.arc(px,py,ps,0,Math.PI*2); ctx.fill();
+  }
 }
 
-// ── DESBLOQUEO ──
+// ══════════════════════════════════════════════════════════════════════════
+//  DESBLOQUEO DESDE VISTA BLOQUEADA
+// ══════════════════════════════════════════════════════════════════════════
 function checkLvCode(){
-  const inp=document.getElementById('lv-input');
-  const msg=document.getElementById('lv-msg');
-  if(!inp||!msg||!selectedChar)return;
-  const val=inp.value.trim().toUpperCase();
-  msg.style.color='rgba(78,201,232,.5)';msg.textContent='Verificando...';
+  const inp = document.getElementById('lv-input');
+  const msg = document.getElementById('lv-msg');
+  if(!inp || !msg || !selectedChar) return;
+  const val = inp.value.trim().toUpperCase();
+  msg.style.color = 'rgba(78,201,232,.5)';
+  msg.textContent = 'Verificando...';
+
   setTimeout(()=>{
-    const targetId=CHAR_CODES[val];
+    const targetId = CHAR_CODES[val];
     if(targetId){
       if(!STATE.unlocked.includes(targetId)){
         STATE.unlocked.push(targetId);
-        STATE.unlockedDates[targetId]=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+        STATE.unlockedDates[targetId] = new Date().toLocaleDateString('es-MX',{
+          day:'2-digit', month:'short', year:'numeric'
+        });
         saveState(STATE);
       }
-      msg.style.color='rgba(80,220,130,.9)';msg.textContent='✓ Expediente desbloqueado';
+      msg.style.color = 'rgba(80,220,130,.9)';
+      msg.textContent = '✓ Expediente desbloqueado';
       setTimeout(()=>{
-        const char=CHARACTERS.find(c=>c.id===targetId);
-        if(char){renderList();selectChar(char,true);}
-      },600);
+        const char = CHARACTERS.find(c=>c.id===targetId);
+        if(char){ renderList(); selectChar(char, true); }
+      }, 600);
     } else {
-      msg.style.color='rgba(220,80,80,.8)';msg.textContent='✗ Código no reconocido';
-      inp.value='';
-      setTimeout(()=>{msg.textContent='';},1600);
+      msg.style.color = 'rgba(220,80,80,.8)';
+      msg.textContent = '✗ Código no reconocido';
+      inp.value = '';
+      setTimeout(()=>{ msg.textContent = ''; }, 1600);
     }
-  },500);
+  }, 500);
 }
 
-// ── FILTROS ──
+// ══════════════════════════════════════════════════════════════════════════
+//  FILTROS
+// ══════════════════════════════════════════════════════════════════════════
 document.querySelectorAll('.sf').forEach(btn=>{
-  btn.addEventListener('click',()=>{
+  btn.addEventListener('click', ()=>{
     document.querySelectorAll('.sf').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on');activeFilter=btn.dataset.f;renderList();
+    btn.classList.add('on');
+    activeFilter = btn.dataset.f;
+    renderList();
   });
 });
 
-// ── FONDO ──
-const bgC=document.getElementById('bg-canvas');
-const bgX=bgC.getContext('2d');
-let shards=[],parts=[];
+// ══════════════════════════════════════════════════════════════════════════
+//  FONDO CANVAS ANIMADO
+// ══════════════════════════════════════════════════════════════════════════
+const bgC = document.getElementById('bg-canvas');
+const bgX = bgC.getContext('2d');
+let shards = [], parts = [];
+
 function initBg(){
-  bgC.width=window.innerWidth;bgC.height=window.innerHeight;
-  shards=Array.from({length:18},mkShard);
-  parts=Array.from({length:60},mkPart);
+  bgC.width  = window.innerWidth;
+  bgC.height = window.innerHeight;
+  shards = Array.from({length:18}, mkShard);
+  parts  = Array.from({length:60}, mkPart);
 }
-function mkShard(){const W=bgC.width,H=bgC.height;return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:.2+Math.random()*.5,rot:Math.random()*360,rs:(Math.random()-.5)*.9,sz:5+Math.random()*20,op:.05+Math.random()*.18};}
-function mkPart(){const W=bgC.width,H=bgC.height;return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:.6+Math.random()*1.8,op:.04+Math.random()*.18,ph:Math.random()*Math.PI*2};}
+function mkShard(){
+  const W=bgC.width, H=bgC.height;
+  return{x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.3,
+    vy:.2+Math.random()*.5, rot:Math.random()*360, rs:(Math.random()-.5)*.9,
+    sz:5+Math.random()*20, op:.05+Math.random()*.18};
+}
+function mkPart(){
+  const W=bgC.width, H=bgC.height;
+  return{x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.35,
+    vy:(Math.random()-.5)*.35, r:.6+Math.random()*1.8,
+    op:.04+Math.random()*.18, ph:Math.random()*Math.PI*2};
+}
 function drawBg(){
-  const W=bgC.width,H=bgC.height;if(!W||!H)return;
-  bgX.fillStyle='rgba(3,8,16,.15)';bgX.fillRect(0,0,W,H);
-  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.ph+=.015;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;const op=p.op*(.5+.5*Math.sin(p.ph));bgX.beginPath();bgX.arc(p.x,p.y,p.r,0,Math.PI*2);bgX.fillStyle=`rgba(78,201,232,${op})`;bgX.fill();});
-  shards.forEach(s=>{s.y+=s.vy;s.x+=s.vx;s.rot+=s.rs;if(s.y>H+30)Object.assign(s,mkShard(),{y:-30,x:Math.random()*W});bgX.save();bgX.translate(s.x,s.y);bgX.rotate(s.rot*Math.PI/180);bgX.globalAlpha=s.op;bgX.fillStyle='rgba(80,160,200,.08)';bgX.strokeStyle='rgba(78,201,232,.35)';bgX.lineWidth=.6;const z=s.sz;bgX.beginPath();bgX.moveTo(0,-z);bgX.lineTo(z*.6,-z*.1);bgX.lineTo(z*.4,z*.5);bgX.lineTo(-z*.2,z*.8);bgX.lineTo(-z*.6,z*.05);bgX.closePath();bgX.fill();bgX.stroke();bgX.restore();});
+  const W=bgC.width, H=bgC.height;
+  if(!W||!H) return;
+  bgX.fillStyle = 'rgba(3,8,16,.15)';
+  bgX.fillRect(0,0,W,H);
+  parts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.ph+=.015;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    const op = p.op*(.5+.5*Math.sin(p.ph));
+    bgX.beginPath(); bgX.arc(p.x,p.y,p.r,0,Math.PI*2);
+    bgX.fillStyle = `rgba(78,201,232,${op})`; bgX.fill();
+  });
+  shards.forEach(s=>{
+    s.y+=s.vy; s.x+=s.vx; s.rot+=s.rs;
+    if(s.y>H+30) Object.assign(s, mkShard(), {y:-30, x:Math.random()*W});
+    bgX.save();
+    bgX.translate(s.x,s.y);
+    bgX.rotate(s.rot*Math.PI/180);
+    bgX.globalAlpha = s.op;
+    bgX.fillStyle   = 'rgba(80,160,200,.08)';
+    bgX.strokeStyle = 'rgba(78,201,232,.35)';
+    bgX.lineWidth   = .6;
+    const z = s.sz;
+    bgX.beginPath();
+    bgX.moveTo(0,-z); bgX.lineTo(z*.6,-z*.1); bgX.lineTo(z*.4,z*.5);
+    bgX.lineTo(-z*.2,z*.8); bgX.lineTo(-z*.6,z*.05);
+    bgX.closePath(); bgX.fill(); bgX.stroke();
+    bgX.restore();
+  });
 }
-window.addEventListener('resize',initBg);
+window.addEventListener('resize', initBg);
 initBg();
-(function loop(){drawBg();requestAnimationFrame(loop);})();
+(function loop(){ drawBg(); requestAnimationFrame(loop); })();
 
-// ── INIT ──
+// ══════════════════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════════════════
 renderList();
-if(STATE.unlocked.length>0){
-  const first=CHARACTERS.find(c=>STATE.unlocked.includes(c.id));
-  if(first) setTimeout(()=>selectChar(first,true),100);
-}
-</script>
-</body>
 
-// ── ESTADO ──
-const CHAR_CODES = {};
-CHARACTERS.forEach(c=>{ if(c.code) CHAR_CODES[c.code.toUpperCase()]=c.id; });
-
-function loadState(){try{return JSON.parse(localStorage.getItem('pf_state')||'{}');}catch(e){return {};}}
-function saveState(s){localStorage.setItem('pf_state',JSON.stringify(s));}
-let STATE=loadState();
-if(!STATE.unlocked) STATE.unlocked=[];
-if(!STATE.unlockedDates) STATE.unlockedDates={};
-
-let activeFilter='all';
-let selectedChar=null;
-
-// ── RENDER SIDEBAR ──
-function renderList(){
-  const list=document.getElementById('char-list');
-  list.innerHTML='';
-  const unlocked=STATE.unlocked.length;
-  const total=CHARACTERS.length;
-  document.getElementById('sb-count').textContent=`${unlocked} / ${total} expedientes`;
-
-  CHARACTERS.forEach(char=>{
-    const isUnlocked=STATE.unlocked.includes(char.id);
-    if(activeFilter!=='all'){
-      if(!isUnlocked||char.status!==activeFilter) return;
-    }
-    const item=document.createElement('div');
-    item.className='char-item'+(isUnlocked?'':' locked')+(selectedChar?.id===char.id?' active':'');
-    item.dataset.id=char.id;
-    const statusLabel={'vivo':'Vivo','desaparecido':'Desap.','muerto':'Muerto','desconocido':'?','fragmentado':'Frag.'}[char.status]||'?';
-    item.innerHTML=`
-      <div class="char-avatar">
-        <canvas width="38" height="38" data-charid="${char.id}"></canvas>
-        <span class="char-avatar-letter">${isUnlocked?(char.name&&char.name!=='???'?char.name[0]:'?'):'?'}</span>
-      </div>
-      <div class="char-info">
-        <p class="char-name">${isUnlocked&&char.name&&char.name!=='???'?char.name:'??? ????'}</p>
-        <p class="char-role">${isUnlocked&&char.role?char.role:'Clasificado'}</p>
-      </div>
-      <span class="char-status status-${char.status}">${statusLabel}</span>
-      ${!isUnlocked?'<span class="lock-icon">🔒</span>':''}`;
-    item.addEventListener('click',()=>selectChar(char,isUnlocked));
-    list.appendChild(item);
-    drawMiniAvatar(item.querySelector('canvas'),char,isUnlocked);
-  });
-}
-
-function drawMiniAvatar(c,char,unlocked){
-  if(!c)return;
-  const ctx=c.getContext('2d'),w=38,h=38;
-  const col=char.accentColor||'#4ec9e8';
-  ctx.fillStyle='rgba(4,10,22,1)';ctx.fillRect(0,0,w,h);
-  if(unlocked){
-    const g=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w*.7);
-    g.addColorStop(0,col+'22');g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-    ctx.strokeStyle=col+'40';ctx.lineWidth=.5;ctx.strokeRect(0,0,w,h);
-  } else {
-    ctx.fillStyle='rgba(255,255,255,.04)';
-    for(let i=0;i<3;i++){ctx.fillRect(Math.random()*w,Math.random()*h,Math.random()*10+2,1);}
-  }
-}
-
-// ── SELECCIONAR PERSONAJE ──
-function selectChar(char,isUnlocked){
-  selectedChar=char;
-  document.querySelectorAll('.char-item').forEach(i=>i.classList.toggle('active',i.dataset.id===char.id));
-  document.getElementById('empty-state').style.display='none';
-  if(isUnlocked){
-    document.getElementById('locked-view').style.display='none';
-    document.getElementById('profile').style.display='flex';
-    renderProfile(char);
-  } else {
-    document.getElementById('profile').style.display='none';
-    document.getElementById('locked-view').style.display='flex';
-    document.getElementById('lv-name').textContent='Expediente clasificado';
-    document.getElementById('lv-input').value='';
-    document.getElementById('lv-msg').textContent='';
-    const inp=document.getElementById('lv-input');
-    inp.onkeydown=null;
-    inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkLvCode();});
-  }
-}
-
-// ── RENDER PERFIL ──
-function renderProfile(char){
-  document.getElementById('p-codename').textContent=char.codename;
-  document.getElementById('p-name').textContent=(char.name&&char.name!=='???')?char.name:'???';
-  document.getElementById('p-role').textContent=char.role||'';
-  document.getElementById('p-id').textContent=char.codename;
-  const dateStr=STATE.unlockedDates?.[char.id]||'Expediente archivado';
-  document.getElementById('p-unlock-date').textContent=`Desbloqueado: ${dateStr}`;
-  const badge=document.getElementById('p-status-badge');
-  badge.textContent={'vivo':'● Vivo','desaparecido':'◈ Desaparecido','muerto':'✕ Muerto','desconocido':'? Desconocido','fragmentado':'◇ Fragmentado'}[char.status]||char.status;
-  badge.className='p-status-badge status-'+char.status;
-
-  const hc=document.getElementById('hero-canvas');
-  hc.width=hc.offsetWidth||800;hc.height=220;
-  drawHero(hc,char);
-  const heroImg=document.getElementById('hero-img');
-  const colorOverlay=document.getElementById('hero-color-overlay');
-  if(char.image){
-    heroImg.classList.remove('loaded');heroImg.src=char.image;heroImg.alt=char.name||'';
-    colorOverlay.style.background=char.accentColor||'transparent';
-  } else {
-    heroImg.src='';heroImg.classList.remove('loaded');colorOverlay.style.background='transparent';
-  }
-
-  const body=document.getElementById('p-body');
-  const loreHtml=char.lore&&char.lore.length
-    ?char.lore.map(p=>`<p>${p}</p>`).join('')
-    :'<p style="font-style:italic;opacity:.4">Historia no disponible.</p>';
-
-  body.innerHTML=`
-    <div class="p-section">
-      <p class="sec-label">Historia</p>
-      <div class="p-lore">${loreHtml}</div>
-    </div>
-    <div class="p-section-half">
-      <p class="sec-label">Estadísticas</p>
-      <div class="stats-grid" id="stats-grid"></div>
-    </div>
-    <div class="p-section-half">
-      <p class="sec-label">Datos del expediente</p>
-      <div class="quick-info">${(char.quickInfo||[]).map(q=>`
-        <div class="qi"><p class="qi-l">${q.l}</p><p class="qi-v">${q.v}</p></div>`).join('')}
-      </div>
-    </div>
-    <div class="p-section">
-      <p class="sec-label">Fragmentos de memoria</p>
-      <div class="fragments-list">${(char.fragments||[]).length?char.fragments.map(f=>`
-        <div class="fragment${f.locked?' locked-frag':''}">
-          <p class="frag-num">${f.id}</p>
-          ${f.locked?`<p class="frag-lock">${f.text}</p>`:`<p class="frag-text">${f.text}</p>`}
-        </div>`).join(''):'<p style="font-size:11px;opacity:.3;font-style:italic">Sin fragmentos registrados.</p>'}
-      </div>
-    </div>
-    ${char.relations&&char.relations.length?`
-    <div class="p-section">
-      <p class="sec-label">Relaciones conocidas</p>
-      <div class="rels">${char.relations.map(r=>`
-        <div class="rel"><span class="rel-name">${r.name}</span><span class="rel-type">${r.type}</span></div>`).join('')}
-      </div>
-    </div>`:''}`;
-
-  const sg=document.getElementById('stats-grid');
-  if(sg)(char.stats||[]).forEach(s=>{
-    const row=document.createElement('div');row.className='stat-row';
-    row.innerHTML=`<span class="stat-name">${s.name}</span><div class="stat-bar-wrap"><div class="stat-bar" style="width:0%;background:${s.color}"></div></div><span class="stat-val">${s.val}</span>`;
-    sg.appendChild(row);
-    setTimeout(()=>{ const bar=row.querySelector('.stat-bar'); if(bar)bar.style.width=s.val+'%'; },100);
-  });
-
-  document.getElementById('detail').scrollTo({top:0,behavior:'smooth'});
-}
-
-function drawHero(c,char){
-  const w=c.width,h=c.height;if(!w||!h)return;
-  const ctx=c.getContext('2d');
-  const [bg1,bg2,accent]=char.heroColor||['#04090f','#08121e','#4ec9e8'];
-  ctx.fillStyle=bg1;ctx.fillRect(0,0,w,h);
-  const g=ctx.createLinearGradient(0,0,w,h);
-  g.addColorStop(0,bg2);g.addColorStop(1,bg1);
-  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle=accent+'18';ctx.lineWidth=1;
-  const lines=[[.1,.0,.35,.8],[.45,.05,.6,.95],[.72,.1,.5,.9],[.85,.0,.95,.7]];
-  lines.forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1*w,y1*h);ctx.lineTo(x2*w,y2*h);ctx.stroke();});
-  const gr=ctx.createRadialGradient(w*.15,h*.5,0,w*.15,h*.5,w*.4);
-  gr.addColorStop(0,accent+'15');gr.addColorStop(1,'transparent');
-  ctx.fillStyle=gr;ctx.fillRect(0,0,w,h);
-  ctx.fillStyle=accent+'30';
-  for(let i=0;i<20;i++){const px=Math.random()*w,py=Math.random()*h,ps=Math.random()*2+.5;ctx.beginPath();ctx.arc(px,py,ps,0,Math.PI*2);ctx.fill();}
-}
-
-// ── DESBLOQUEO ──
-function checkLvCode(){
-  const inp=document.getElementById('lv-input');
-  const msg=document.getElementById('lv-msg');
-  if(!inp||!msg||!selectedChar)return;
-  const val=inp.value.trim().toUpperCase();
-  msg.style.color='rgba(78,201,232,.5)';msg.textContent='Verificando...';
-  setTimeout(()=>{
-    const targetId=CHAR_CODES[val];
-    if(targetId){
-      if(!STATE.unlocked.includes(targetId)){
-        STATE.unlocked.push(targetId);
-        STATE.unlockedDates[targetId]=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-        saveState(STATE);
-      }
-      msg.style.color='rgba(80,220,130,.9)';msg.textContent='✓ Expediente desbloqueado';
-      setTimeout(()=>{
-        const char=CHARACTERS.find(c=>c.id===targetId);
-        if(char){renderList();selectChar(char,true);}
-      },600);
-    } else {
-      msg.style.color='rgba(220,80,80,.8)';msg.textContent='✗ Código no reconocido';
-      inp.value='';
-      setTimeout(()=>{msg.textContent='';},1600);
-    }
-  },500);
-}
-
-// ── FILTROS ──
-document.querySelectorAll('.sf').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.sf').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on');activeFilter=btn.dataset.f;renderList();
-  });
-});
-
-// ── FONDO ──
-const bgC=document.getElementById('bg-canvas');
-const bgX=bgC.getContext('2d');
-let shards=[],parts=[];
-function initBg(){
-  bgC.width=window.innerWidth;bgC.height=window.innerHeight;
-  shards=Array.from({length:18},mkShard);
-  parts=Array.from({length:60},mkPart);
-}
-function mkShard(){const W=bgC.width,H=bgC.height;return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:.2+Math.random()*.5,rot:Math.random()*360,rs:(Math.random()-.5)*.9,sz:5+Math.random()*20,op:.05+Math.random()*.18};}
-function mkPart(){const W=bgC.width,H=bgC.height;return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:.6+Math.random()*1.8,op:.04+Math.random()*.18,ph:Math.random()*Math.PI*2};}
-function drawBg(){
-  const W=bgC.width,H=bgC.height;if(!W||!H)return;
-  bgX.fillStyle='rgba(3,8,16,.15)';bgX.fillRect(0,0,W,H);
-  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.ph+=.015;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;const op=p.op*(.5+.5*Math.sin(p.ph));bgX.beginPath();bgX.arc(p.x,p.y,p.r,0,Math.PI*2);bgX.fillStyle=`rgba(78,201,232,${op})`;bgX.fill();});
-  shards.forEach(s=>{s.y+=s.vy;s.x+=s.vx;s.rot+=s.rs;if(s.y>H+30)Object.assign(s,mkShard(),{y:-30,x:Math.random()*W});bgX.save();bgX.translate(s.x,s.y);bgX.rotate(s.rot*Math.PI/180);bgX.globalAlpha=s.op;bgX.fillStyle='rgba(80,160,200,.08)';bgX.strokeStyle='rgba(78,201,232,.35)';bgX.lineWidth=.6;const z=s.sz;bgX.beginPath();bgX.moveTo(0,-z);bgX.lineTo(z*.6,-z*.1);bgX.lineTo(z*.4,z*.5);bgX.lineTo(-z*.2,z*.8);bgX.lineTo(-z*.6,z*.05);bgX.closePath();bgX.fill();bgX.stroke();bgX.restore();});
-}
-window.addEventListener('resize',initBg);
-initBg();
-(function loop(){drawBg();requestAnimationFrame(loop);})();
-
-// ── INIT ──
-renderList();
-if(STATE.unlocked.length>0){
-  const first=CHARACTERS.find(c=>STATE.unlocked.includes(c.id));
-  if(first) setTimeout(()=>selectChar(first,true),100);
+// Si hay personajes desbloqueados, selecciona el primero automáticamente
+if(STATE.unlocked.length > 0){
+  const first = CHARACTERS.find(c=>STATE.unlocked.includes(c.id));
+  if(first) setTimeout(()=>selectChar(first, true), 100);
 }
 </script>
 </body>
