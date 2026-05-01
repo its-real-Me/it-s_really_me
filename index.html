@@ -100,7 +100,7 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 
     <nav id="menu">
       <button class="mi" data-p="play"><div class="ml"></div><span class="mt">Iniciar sesión</span><span class="mi-badge">REQUIERE CLAVE</span></button>
-      <button class="mi" data-p="personajes"><div class="ml"></div><span class="mt">Personajes</span><span class="mi-badge" id="badge-chars">0 / ?</span></button>
+      <button class="mi" data-p="personajes"><div class="ml"></div><span class="mt">Personajes</span><span class="mi-badge" id="badge-chars">0 / 26</span></button>
       <button class="mi" data-p="continuar"><div class="ml"></div><span class="mt">Continuar</span></button>
       <button class="mi" data-p="ajustes"><div class="ml"></div><span class="mt">Ajustes</span></button>
       <button class="mi" data-p="creditos"><div class="ml"></div><span class="mt">Créditos</span></button>
@@ -122,31 +122,49 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  ▶ CÓDIGO PRINCIPAL DE INICIO DE SESIÓN
+//  CÓDIGO PRINCIPAL DE INICIO DE SESIÓN
 // ══════════════════════════════════════════════════════════════
 const GAME_CODE = "FIND ME";
 
 // ══════════════════════════════════════════════════════════════
-//  ▶ CÓDIGOS DE PERSONAJES
+//  CÓDIGOS DE PERSONAJES — 26 sujetos
 // ══════════════════════════════════════════════════════════════
 const CHAR_CODES = {
-  "ESPEJO-01":"valeria","SOMBRA-02":"kieran","LUZ-03":"noa",
-  "VACIO-04":"seren","ECO-05":"arlo","REMEMBER":"riven","REPLACED":"mara",
-  "UNIQUE":"subject08","DEMON":"subject09","PSYCHOPATH":"subject10",
-  "GOOD TRY":"subject11","CREATIVITY":"subject12","WHERE AM I?":"subject13",
-  "REPLAY":"subject14","LIPT QI":"subject15","HAPPINESS":"subject16",
-  "INNOCENCE":"subject17","SHAPESHIFTER":"subject18","EMPANADA":"subject19",
-  "TIME":"subject20","BUNNY":"subject21","SPACE":"subject22",
-  "CANNIBAL":"subject23","SCAPE":"subject24","RUN":"subject25","STARS":"subject26",
-  "HUNGRY":"subject27",
+  // Easter Eggs (primeros 5 slots)
+  "HARU":    "valeria",
+  "SANS":    "kieran",
+  "SILLA":   "noa",
+  "KIMIYO":  "seren",
+  "NATS":    "arlo",
+  // Sujetos normales
+  "REMEMBER":      "riven",
+  "REPLACED":      "mara",
+  "UNIQUE":        "subject08",
+  "DEMON":         "subject09",
+  "PSYCHOPATH":    "subject10",
+  "GOOD TRY":      "subject11",
+  "ALAIA":         "subject12",
+  "WHERE AM I?":   "subject13",
+  "REPLAY":        "subject14",
+  "LIPT QI":       "subject15",
+  "HAPPINESS":     "subject16",
+  "INNOCENCE":     "subject17",
+  "SHAPESHIFTER":  "subject18",
+  "EMPANADA":      "subject19",
+  "TIME":          "subject20",
+  "BUNNY":         "subject21",
+  "SPACE":         "subject22",
+  "CANNIBAL":      "subject23",
+  "SCAPE":         "subject24",
+  "RUN":           "subject25",
+  "STARS":         "subject26",
+  "HUNGRY":        "subject27",
 };
 
-// Número total de personajes desbloqueables (para el badge del menú)
-// Actualiza esto si agregas más personajes.
 const TOTAL_CHARS = 27;
 
 // ══════════════════════════════════════════════════════════════
-//  ESTADO — guardado en localStorage
+//  ESTADO
 // ══════════════════════════════════════════════════════════════
 function loadState(){
   try{ return JSON.parse(localStorage.getItem('pf_state')||'{}'); }
@@ -155,8 +173,8 @@ function loadState(){
 function saveState(s){ localStorage.setItem('pf_state', JSON.stringify(s)); }
 
 let STATE = loadState();
-if(!STATE.unlocked)    STATE.unlocked = [];
-if(!STATE.gameStarted) STATE.gameStarted = false;
+if(!STATE.unlocked)      STATE.unlocked = [];
+if(!STATE.gameStarted)   STATE.gameStarted = false;
 if(!STATE.unlockedDates) STATE.unlockedDates = {};
 saveState(STATE);
 
@@ -166,7 +184,7 @@ function updateBadge(){
 updateBadge();
 
 // ══════════════════════════════════════════════════════════════
-//  PANELES — contenido de cada ventana modal
+//  PANELES
 // ══════════════════════════════════════════════════════════════
 let attempts = 0;
 
@@ -180,7 +198,7 @@ const PANELS = {
     <div class="p-body">
       <p class="p-desc">El sistema está encriptado. Ingresa la clave de inicio para acceder a los archivos clasificados.</p>
       <div class="input-wrap">
-        <input id="code-input" class="sys-input" maxlength="16" placeholder="· · · · · · · ·" autocomplete="off" spellcheck="false"/>
+        <input id="code-input" class="sys-input" maxlength="25" placeholder="· · · · · · · ·" autocomplete="off" spellcheck="false"/>
         <div class="input-cursor"></div>
       </div>
       <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
@@ -200,7 +218,7 @@ const PANELS = {
     <div class="p-body">
       <p class="p-desc">Cada sujeto tiene un código único. Encuéntralos en las pistas del ARG e ingrésalos aquí para acceder a su expediente completo.</p>
       <div class="input-wrap">
-        <input id="char-input" class="sys-input" maxlength="20" placeholder="CÓDIGO — SUJETO" autocomplete="off" spellcheck="false"/>
+        <input id="char-input" class="sys-input" maxlength="25" placeholder="CÓDIGO — SUJETO" autocomplete="off" spellcheck="false"/>
         <div class="input-cursor"></div>
       </div>
       <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
@@ -225,7 +243,7 @@ const PANELS = {
     return `
     <div class="p-head"><p class="p-tag">Sesión encontrada</p><p class="p-title">Continuar investigación</p></div>
     <div class="p-body">
-      <p class="p-desc">Sesión activa detectada. ${STATE.unlocked.length} expediente(s) desbloqueado(s).</p>
+      <p class="p-desc">Sesión activa detectada. ${STATE.unlocked.length} expediente(s) desbloqueado(s) de ${TOTAL_CHARS}.</p>
       <div class="btn-row">
         <button class="btn primary" onclick="goToChars()">Abrir archivos →</button>
         <button class="btn" onclick="closePanel()">Volver</button>
@@ -262,7 +280,10 @@ const PANELS = {
 // ══════════════════════════════════════════════════════════════
 //  LÓGICA DE PANELES
 // ══════════════════════════════════════════════════════════════
+let currentPanel = '';
+
 function openPanel(id){
+  currentPanel = id;
   document.querySelectorAll('.mi').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   document.getElementById('panel-content').innerHTML = PANELS[id]?PANELS[id]():'';
   document.getElementById('overlay').classList.add('open');
@@ -271,7 +292,12 @@ function openPanel(id){
     const inp = document.getElementById('code-input')||document.getElementById('char-input');
     if(inp){
       inp.focus();
-      inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ id==='play'?checkGameCode():checkCharCode(); }});
+      inp.onkeydown = null;
+      inp.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){
+          currentPanel==='play' ? checkGameCode() : checkCharCode();
+        }
+      });
     }
   },200);
 }
@@ -363,7 +389,7 @@ document.querySelectorAll('.mi').forEach(btn=>{
 });
 
 // ══════════════════════════════════════════════════════════════
-//  FONDO ANIMADO — canvas con fragmentos y partículas
+//  FONDO ANIMADO
 // ══════════════════════════════════════════════════════════════
 const bgC=document.getElementById('bg-canvas');
 const bgX=bgC.getContext('2d');
