@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proyecto Fragmentado</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<script src="arg-core.js"></script>
 <style>
 :root{
   --c:#4ec9e8;--c2:rgba(78,201,232,.15);--c3:rgba(78,201,232,.06);
@@ -85,6 +86,29 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 
 #notif{position:fixed;bottom:50px;left:50%;transform:translateX(-50%) translateY(20px);z-index:99;background:rgba(4,10,22,.97);border:.5px solid rgba(78,201,232,.3);padding:10px 20px;font-size:11px;letter-spacing:.15em;color:var(--c);opacity:0;transition:all .4s;pointer-events:none;white-space:nowrap;}
 #notif.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── ALTO CONTRASTE ── */
+body.hc{--t:#eafaff;--td:rgba(220,245,255,.8);--tm:rgba(220,245,255,.5);--c:#7fe8ff;}
+body.hc .game-title{text-shadow:0 0 30px rgba(127,232,255,.5);}
+body.hc .mt{color:rgba(255,255,255,.75);}
+body.hc .mi{border-bottom-color:rgba(127,232,255,.25);}
+body.hc #vignette{display:none;}
+body.hc #scanlines{opacity:.4;}
+
+/* ── RESPONSIVE ── */
+@media (max-width:600px){
+  #app{align-items:flex-start;padding:64px 24px 24px;}
+  #main{width:100%;}
+  #menu{width:100%;}
+  .game-sub{margin-bottom:32px;}
+  #ver{left:20px;}
+  #status{right:20px;}
+  .panel{max-width:none;}
+  .mi-badge{font-size:8px;padding:2px 6px;}
+}
+@media (max-height:560px){
+  #app{align-items:flex-start;padding-top:24px;}
+}
 </style>
 </head>
 <body>
@@ -100,7 +124,7 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 
     <nav id="menu">
       <button class="mi" data-p="play"><div class="ml"></div><span class="mt">Iniciar sesión</span><span class="mi-badge">REQUIERE CLAVE</span></button>
-      <button class="mi" data-p="personajes"><div class="ml"></div><span class="mt">Personajes</span><span class="mi-badge" id="badge-chars">0 / 26</span></button>
+      <button class="mi" data-p="personajes"><div class="ml"></div><span class="mt">Personajes</span><span class="mi-badge" id="badge-chars">0 / 27</span></button>
       <button class="mi" data-p="continuar"><div class="ml"></div><span class="mt">Continuar</span></button>
       <button class="mi" data-p="ajustes"><div class="ml"></div><span class="mt">Ajustes</span></button>
       <button class="mi" data-p="creditos"><div class="ml"></div><span class="mt">Créditos</span></button>
@@ -124,41 +148,42 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',san
 // ══════════════════════════════════════════════════════════════
 //  CÓDIGO PRINCIPAL DE INICIO DE SESIÓN
 // ══════════════════════════════════════════════════════════════
-const GAME_CODE = "FIND ME";
+// Hash SHA-256 de la clave de inicio (antes en texto plano).
+const GAME_CODE_HASH = "d5b10775661da05393d51b18d8c9429c77b795125a9c71f05eb21c4a5932b4fa";
 
 // ══════════════════════════════════════════════════════════════
-//  CÓDIGOS DE PERSONAJES — 26 sujetos
+//  CÓDIGOS DE PERSONAJES — hash SHA-256 → id de sujeto
+//  Los códigos ya no están en texto plano: se compara el hash de
+//  lo que escribe el jugador contra estos valores.
 // ══════════════════════════════════════════════════════════════
 const CHAR_CODES = {
-  // Easter Eggs (primeros 5 slots)
-  "HARU":    "valeria",
-  "SANS":    "kieran",
-  "SILLA":   "noa",
-  "KIMIYO":  "seren",
-  "NATS":    "arlo",
-  // Sujetos normales
-  "REMEMBER":      "riven",
-  "REPLACED":      "mara",
-  "UNIQUE":        "subject08",
-  "DEMON":         "subject09",
-  "PSYCHOPATH":    "subject10",
-  "GOOD TRY":      "subject11",
-  "ALAIA":         "subject12",
-  "WHERE AM I?":   "subject13",
-  "REPLAY":        "subject14",
-  "LIPT QI":       "subject15",
-  "HAPPINESS":     "subject16",
-  "INNOCENCE":     "subject17",
-  "SHAPESHIFTER":  "subject18",
-  "EMPANADA":      "subject19",
-  "TIME":          "subject20",
-  "BUNNY":         "subject21",
-  "SPACE":         "subject22",
-  "CANNIBAL":      "subject23",
-  "SCAPE":         "subject24",
-  "RUN":           "subject25",
-  "STARS":         "subject26",
-  "HUNGRY":        "subject27",
+  "f170fab9790d60d51df816c6b688c32737b3405822e5780de980cd4ca1210e38": "valeria",
+  "367a2cb82cfb5f58edb81bd05e44320cf18179f121592f52608e89e64b1dbd8a": "kieran",
+  "3ebdd8f1260d7a462fe6684b50244a471a3af36ef88b37e8ba92b9f05fe3b053": "noa",
+  "031dfdd4a012bb89f71e3af3ebae479352e87743a1a221d5c421f6e227b196e2": "seren",
+  "faf993ceb523d1157a136d7954978f915233027ceeb07727bbfc5526ebefb9ff": "arlo",
+  "6cd67c15959c38d78df8cc384245627e4ec1b5092e163e35dbb10d965b8ea65e": "riven",
+  "8b8edc2a2539d8a0f49556c9e066af896a4f2257f2afd268336b0dfd20cd4d1d": "mara",
+  "64636a121324b3fdbc05711f24c60b15a2ee701171e2b8c47dee40387136539b": "subject08",
+  "a3df42822fab233312b34920d6aef83ec8f0fbd287bdc12833de9dd8d4bf823e": "subject09",
+  "5f5d411a1a0ac046a6f24c3f6bdccf25e773d9d941b9d83eee9f08691d48163a": "subject10",
+  "7cdf0b0d55efbd3cd7f9989b3fa1aac7ee83b644d1ecb76c7d55ce2fa30d807a": "subject11",
+  "41b2e6cccbb1ba8ea8912eebe5bc98557c449c0073fe21d71d0f4f9c5042f650": "subject12",
+  "7b6ea8cd7a3a17d4708ae2fa302f0de35bb00671f5c85114ba6c2346f5da4764": "subject13",
+  "92d23f5381eac5178010dcadea360366dd2698f70d179dc027ddfbc94769aed0": "subject14",
+  "4bef4d52bb5a8955e9a08601dfe859cd538e9f3d54d457ffe4eea39b4a9dec18": "subject15",
+  "1ea2474b6c87ff37d7931fd61e0041b74452eaabef61b864e89f2c717bffce26": "subject16",
+  "48ce635e4a058fae03b9ffeaab9347a6d5a8b9c32a7f55889b7eb0ad99bbe4d9": "subject17",
+  "fe4b4092aead9d16e3f5aec23463a5da4e4358b6d1d75cd8b89050b945a56b41": "subject18",
+  "aa328847d2717419b7d025b1779fa6d507df3a541245c5d970f5aa1693b599d3": "subject19",
+  "5888675d99b95617ba8cccd20dabe5554e91c71f3877c69d759bd8a5f162ae70": "subject20",
+  "9dc3529f3ab3d7b8bc37bc8a02562e0445c25d5c9415ec3206d7ea4fbe0bc2a1": "subject21",
+  "7ed62da858e13cb37ad0e4669d774a02699d024d49abcf89bf2e14cdd6da0d26": "subject22",
+  "1e4beae4133ee699774339ac5093d828ff1edb70b7cc9480224d8f7ba0ace05e": "subject23",
+  "6228c8de70429e410f76ec61a50ba382e91bbdfeb66eb33ccba759a500f8c02c": "subject24",
+  "ddeaded8ad8e44933f39e672a8886d49ba10738d78bde119b2fe7c3c25fdc4d4": "subject25",
+  "41aa3d67ad7af7a3311d975132a198f5217855fb79521e654337e44c115fa893": "subject26",
+  "dd6cd64498690c8cec31d9532974e684171b6aa615ab29acd2563e68ccbdb460": "subject27",
 };
 
 const TOTAL_CHARS = 27;
@@ -251,13 +276,15 @@ const PANELS = {
     </div>`;
   },
   ajustes(){
+    const row=(key,label)=>`<div class="s-row"><span>${label}</span><div class="tg${ARG.settings[key]?' on':''}" onclick="toggleSetting('${key}',this)"></div></div>`;
     return `
     <div class="p-head"><p class="p-tag">Configuración</p><p class="p-title">Ajustes del sistema</p></div>
     <div class="p-body">
-      <div class="s-row"><span>Efectos de glitch</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="s-row"><span>Animaciones de fondo</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="s-row"><span>Notificaciones ARG</span><div class="tg on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="s-row"><span>Modo alto contraste</span><div class="tg" onclick="this.classList.toggle('on')"></div></div>
+      ${row('glitch','Efectos de glitch')}
+      ${row('animations','Animaciones de fondo')}
+      ${row('notifications','Notificaciones ARG')}
+      ${row('highContrast','Modo alto contraste')}
+      ${row('sound','Sonido ambiente')}
       <div class="btn-row" style="margin-top:16px">
         <button class="btn primary" onclick="closePanel()">Guardar</button>
         <button class="btn" style="color:rgba(255,80,80,.5);border-color:rgba(255,80,80,.2)" onclick="resetGame()">Resetear datos</button>
@@ -284,6 +311,7 @@ let currentPanel = '';
 
 function openPanel(id){
   currentPanel = id;
+  ARG.sfx.open();
   document.querySelectorAll('.mi').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   document.getElementById('panel-content').innerHTML = PANELS[id]?PANELS[id]():'';
   document.getElementById('overlay').classList.add('open');
@@ -320,18 +348,18 @@ function showMsg(text,color,progW,progColor){
 function checkGameCode(){
   const inp = document.getElementById('code-input');
   if(!inp) return;
-  const val = inp.value.trim().toUpperCase();
+  const val = ARG.hash(inp.value);
   showMsg('VERIFICANDO...','rgba(78,201,232,.7)','60%');
   setTimeout(()=>{
-    if(val === GAME_CODE){
+    if(val === GAME_CODE_HASH){
       showMsg('✓ ACCESO CONCEDIDO','rgba(80,220,130,.9)','100%','#4dd890');
-      triggerGlitch();
+      triggerGlitch(); ARG.sfx.success();
       STATE.gameStarted = true; saveState(STATE);
       setTimeout(()=>{ closePanel(); goToChars(); }, 900);
     } else {
       attempts++;
       showMsg(`✗ CLAVE INVÁLIDA${attempts>=3?' — DEMASIADOS INTENTOS':''}`, 'rgba(220,80,80,.9)','100%','rgba(220,60,60,.8)');
-      inp.value=''; triggerGlitch();
+      inp.value=''; triggerGlitch(); ARG.sfx.fail();
       setTimeout(()=>showMsg('ESPERANDO ENTRADA','rgba(78,201,232,.4)','0%','#4ec9e8'),1400);
     }
   },600);
@@ -343,7 +371,7 @@ function checkGameCode(){
 function checkCharCode(){
   const inp = document.getElementById('char-input');
   if(!inp) return;
-  const val = inp.value.trim().toUpperCase();
+  const val = ARG.hash(inp.value);
   showMsg('BUSCANDO EN ARCHIVOS...','rgba(78,201,232,.7)','60%');
   setTimeout(()=>{
     const charId = CHAR_CODES[val];
@@ -356,12 +384,12 @@ function checkCharCode(){
         STATE.unlockedDates[charId] = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
         saveState(STATE); updateBadge();
         showMsg('✓ EXPEDIENTE DESBLOQUEADO','rgba(80,220,130,.9)','100%','#4dd890');
-        triggerGlitch(); notify('Nuevo expediente desbloqueado');
+        triggerGlitch(); ARG.sfx.success(); notify('Nuevo expediente desbloqueado');
         setTimeout(()=>{ closePanel(); goToChars(); },1000);
       }
     } else {
       showMsg('✗ CÓDIGO NO RECONOCIDO','rgba(220,80,80,.9)','100%','rgba(220,60,60,.8)');
-      inp.value=''; triggerGlitch();
+      inp.value=''; triggerGlitch(); ARG.sfx.fail();
       setTimeout(()=>showMsg('ESPERANDO CÓDIGO','rgba(78,201,232,.4)','0%','#4ec9e8'),1400);
     }
   },700);
@@ -379,9 +407,17 @@ function resetGame(){
 }
 
 function notify(msg){
+  if(!ARG.notifyEnabled()) return;
   const n=document.getElementById('notif');
   n.textContent=msg; n.classList.add('show');
   setTimeout(()=>n.classList.remove('show'),2800);
+}
+
+function toggleSetting(key, el){
+  const next = !ARG.settings[key];
+  el.classList.toggle('on', next);
+  ARG.setSetting(key, next);
+  ARG.sfx.key();
 }
 
 document.querySelectorAll('.mi').forEach(btn=>{
@@ -410,7 +446,7 @@ function mkPart(){
 }
 
 let gf=0;
-function triggerGlitch(){gf=10+Math.floor(Math.random()*8);}
+function triggerGlitch(){ if(!ARG.glitchEnabled())return; gf=10+Math.floor(Math.random()*8); }
 
 function drawBg(t){
   const W=bgC.width,H=bgC.height;
@@ -455,7 +491,11 @@ function drawBg(t){
 
 window.addEventListener('resize',initBg);
 initBg();
-(function loop(t){ drawBg(t); requestAnimationFrame(loop); })();
+(function loop(t){
+  if(ARG.animEnabled()){ drawBg(t); }
+  else { bgX.fillStyle='#030810'; bgX.fillRect(0,0,bgC.width,bgC.height); }
+  requestAnimationFrame(loop);
+})();
 </script>
 </body>
 </html>
