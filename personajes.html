@@ -66,6 +66,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   82%{opacity:0;}
 }
 
+/* ── SPECIAL BUBBLE (4th ring / Hana) ── */
+.special-bubble{animation:special-pulse 3s ease-in-out infinite;}
+@keyframes special-pulse{
+  0%,100%{box-shadow:0 0 12px #e84e9a44,0 0 0 3px #e84e9a22;}
+  50%{box-shadow:0 0 28px #e84e9a88,0 0 0 6px #e84e9a44;}
+}
+
 /* ── RAIL ── */
 #rail{
   position:fixed;right:0;top:0;bottom:0;width:72px;z-index:30;
@@ -1014,6 +1021,21 @@ const CHARACTERS = [
     ],
   },
 
+  // ══ ESPECIAL — HANA ══
+  {
+    id:"hana",
+    name:"Hana",
+    codename:"PROTOCOLO-0",
+    codeHash:"43fbf08f4402c6b73651661926f76b9d5b9d465c85ad80fb171e2af1d5b68665",
+    redirect:"Hana_information.html",
+    accentColor:"#e84e9a",
+    image:"",
+    quickInfo:[
+      {l:"Estado",v:"CLASIFICADO"},
+      {l:"Código",v:""},
+    ],
+  },
+
 ];
 
 // ════════════════════════════════════════════════════════════════════
@@ -1037,8 +1059,8 @@ if(!STATE.codes)         STATE.codes = {};
 //  ORBIT CONFIG
 // ════════════════════════════════════════════════════════════════════
 // 5 + 9 + 13 = 27 bubbles across 3 rings
-const RING_COUNTS = [5, 9, 13];
-const RING_SPEEDS = [0.00026, -0.00018, 0.00013]; // rad/frame
+const RING_COUNTS = [5, 9, 13, 1];
+const RING_SPEEDS = [0.00026, -0.00018, 0.00013, 0.00007]; // rad/frame
 let orbitAngles   = [0, 0, 0];
 let bubbleData    = [];
 let panelOpen     = false;
@@ -1046,9 +1068,8 @@ let selectedChar  = null;
 
 function getRingRadii(){
   const d = Math.min(window.innerWidth, window.innerHeight);
-  return [d * 0.17, d * 0.29, d * 0.43];
-}
-function getBubbleSizes(){ return [62, 66, 58]; }
+  return [d * 0.17, d * 0.29, d * 0.43, d * 0.60]; }
+function getBubbleSizes(){ return [62, 66, 58, 78]; }
 
 // ════════════════════════════════════════════════════════════════════
 //  BUILD BUBBLES
@@ -1070,7 +1091,9 @@ function initBubbles(){
 
       const el = document.createElement('div');
       el.className = 'bubble' + (isUnlocked ? '' : ' locked');
-      el.style.cssText = 'width:'+sz+'px;height:'+sz+'px;left:0;top:0;border-color:'+col+'28;';
+      const isSpecial = !!char.redirect;
+      el.style.cssText = 'width:'+sz+'px;height:'+sz+'px;left:0;top:0;border-color:'+col+(isSpecial?'66':'28')+';';
+      if(isSpecial) el.classList.add('special-bubble');
       if(isUnlocked) el.style.boxShadow = '0 0 10px '+col+'16';
 
       if(isUnlocked && char.image){
@@ -1350,7 +1373,10 @@ function checkLvCode(){
       ARG.sfx.success();
       setTimeout(function(){
         const char=CHARACTERS.find(function(c){return c.id===targetId;});
-        if(char){ initBubbles(); openPanel(char,true); }
+        if(char){
+          if(char.redirect){ window.location.href = char.redirect; return; }
+          initBubbles(); openPanel(char,true);
+        }
       }, 700);
     } else {
       msg.style.color='rgba(220,80,80,.8)';
