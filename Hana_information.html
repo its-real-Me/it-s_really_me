@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROTOCOLO-0 // HANA — Expediente Clasificado</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<script src="arg-core.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#03080f;color:#c8d8e4;font-family:'Rajdhani',sans-serif;overflow-x:hidden;}
+
+canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 40%,#030810cc 100%);}
+#scanlines{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.04;
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,#000 3px,#000 4px);}
+
+/* ── TOP BAR ── */
+#top-bar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;border-bottom:1px solid #e84e9a22;
+}
+#top-bar .logo{font-size:.7rem;letter-spacing:.25em;color:#e84e9a88;text-transform:uppercase;}
+#top-bar .back-btn{
+  font-size:.68rem;letter-spacing:.18em;color:#4ec9e8;text-transform:uppercase;
+  background:none;border:1px solid #4ec9e822;padding:6px 14px;cursor:pointer;
+  transition:border-color .2s,color .2s;
+}
+#top-bar .back-btn:hover{border-color:#4ec9e855;color:#7ee0f5;}
+
+/* ── CONTENT ── */
+#content{
+  position:relative;z-index:5;
+  max-width:860px;margin:0 auto;padding:48px 24px 80px;
+}
+
+/* ── HEADER BLOCK ── */
+.file-header{
+  display:flex;align-items:flex-end;gap:32px;
+  border-bottom:1px solid #e84e9a22;padding-bottom:32px;margin-bottom:40px;
+}
+.file-portrait{
+  flex-shrink:0;width:140px;height:140px;border-radius:50%;
+  border:2px solid #e84e9a55;
+  background:#0a1020;display:flex;align-items:center;justify-content:center;
+  font-size:3.5rem;color:#e84e9a55;font-family:'Cormorant Garamond',serif;
+  box-shadow:0 0 28px #e84e9a33;overflow:hidden;
+}
+.file-portrait img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.file-meta{flex:1;}
+.file-meta .classification{
+  font-size:.6rem;letter-spacing:.3em;color:#e84e9a;text-transform:uppercase;margin-bottom:8px;
+}
+.file-meta h1{
+  font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:300;
+  color:#f0e8f5;letter-spacing:.08em;margin-bottom:4px;
+}
+.file-meta .codename{
+  font-size:.7rem;letter-spacing:.25em;color:#c8d8e488;text-transform:uppercase;margin-bottom:16px;
+}
+.file-meta .status-badge{
+  display:inline-block;font-size:.6rem;letter-spacing:.2em;padding:4px 10px;
+  border:1px solid #e84e9a44;color:#e84e9a;text-transform:uppercase;
+}
+
+/* ── SECTION BLOCKS ── */
+.section{margin-bottom:40px;}
+.section-label{
+  font-size:.6rem;letter-spacing:.3em;color:#4ec9e8;text-transform:uppercase;
+  border-bottom:1px solid #4ec9e822;padding-bottom:8px;margin-bottom:20px;
+}
+.info-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;
+}
+.info-cell{background:#0a1420;border:1px solid #1a2a3a;padding:14px 16px;}
+.info-cell .label{font-size:.58rem;letter-spacing:.2em;color:#4ec9e899;text-transform:uppercase;margin-bottom:6px;}
+.info-cell .value{font-size:.92rem;color:#c8d8e4;}
+
+.narrative{
+  font-family:'Cormorant Garamond',serif;font-size:1.05rem;line-height:1.85;
+  color:#a8bccb;font-style:italic;
+}
+.narrative p+p{margin-top:1.2em;}
+
+.redacted{
+  background:#e84e9a22;border-left:2px solid #e84e9a55;
+  padding:14px 18px;font-size:.8rem;color:#e84e9a99;letter-spacing:.05em;
+  margin-top:20px;
+}
+
+/* ── CLASSIFIED WATERMARK ── */
+.watermark{
+  position:fixed;bottom:24px;right:28px;z-index:6;
+  font-size:.55rem;letter-spacing:.25em;color:#e84e9a18;text-transform:uppercase;
+  pointer-events:none;
+}
+
+@media(max-width:600px){
+  .file-header{flex-direction:column;align-items:center;text-align:center;}
+  .file-meta h1{font-size:2rem;}
+  .info-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+
+<header id="top-bar">
+  <span class="logo">Proyecto Fragmentado // Expediente Especial</span>
+  <button class="back-btn" onclick="history.back()">← Volver</button>
+</header>
+
+<main id="content">
+
+  <div class="file-header">
+    <div class="file-portrait" id="portrait">H</div>
+    <div class="file-meta">
+      <div class="classification">Expediente Nivel-Ω — Acceso Restringido</div>
+      <h1>Hana</h1>
+      <div class="codename">PROTOCOLO-0 // GENESIS-NULL</div>
+      <span class="status-badge">Estado: CLASIFICADO</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Datos de identificación</div>
+    <div class="info-grid">
+      <div class="info-cell"><div class="label">Designación</div><div class="value">PROTOCOLO-0</div></div>
+      <div class="info-cell"><div class="label">Origen</div><div class="value">Desconocido</div></div>
+      <div class="info-cell"><div class="label">Fecha de registro</div><div class="value">—</div></div>
+      <div class="info-cell"><div class="label">Clasificación</div><div class="value">Nivel-Ω</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Informe narrativo</div>
+    <div class="narrative">
+      <p>El expediente de este sujeto permanece en su mayor parte sellado por orden del Protocolo de Contención Interna. La información disponible es fragmentaria e inconclusa.</p>
+      <p>Lo que se sabe: PROTOCOLO-0 precede a todos los demás sujetos registrados en el proyecto. Su existencia fue confirmada antes de que el programa tuviera nombre.</p>
+    </div>
+    <div class="redacted">[ SECCIÓN 3-C SUPRIMIDA — AUTORIZACIÓN NIVEL-Ω REQUERIDA ]</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Observaciones adicionales</div>
+    <div class="narrative">
+      <p>Esta página es un placeholder. Puedes editar <code>Hana_information.html</code> para agregar la historia, imágenes y datos reales del personaje.</p>
+    </div>
+  </div>
+
+</main>
+
+<div class="watermark">PROTOCOLO-0 // CLASIFICADO // PF-ARG</div>
+
+<script>
+// BG canvas (identical to personajes.html)
+(function(){
+  const c=document.getElementById('bg');
+  const x=c.getContext('2d');
+  let W,H,pts=[];
+  function resize(){ W=c.width=window.innerWidth; H=c.height=window.innerHeight; initPts(); }
+  function initPts(){
+    pts=[];
+    for(let i=0;i<28;i++) pts.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.18, vy:(Math.random()-.5)*.18,
+      sz:Math.random()*18+6, op:Math.random()*.22+.04, rot:Math.random()*360
+    });
+  }
+  function draw(){
+    x.fillStyle='#030810'; x.fillRect(0,0,W,H);
+    if(!ARG.animEnabled()){ requestAnimationFrame(draw); return; }
+    pts.forEach(s=>{
+      s.x+=s.vx; s.y+=s.vy; s.rot+=.06;
+      if(s.x<-30)s.x=W+30; if(s.x>W+30)s.x=-30;
+      if(s.y<-30)s.y=H+30; if(s.y>H+30)s.y=-30;
+      x.save(); x.translate(s.x,s.y); x.rotate(s.rot*Math.PI/180);
+      x.globalAlpha=s.op;
+      x.fillStyle='rgba(232,78,154,.07)'; x.strokeStyle='rgba(232,78,154,.3)'; x.lineWidth=.5;
+      const z=s.sz;
+      x.beginPath(); x.moveTo(0,-z); x.lineTo(z*.6,-z*.1); x.lineTo(z*.4,z*.5);
+      x.lineTo(-z*.2,z*.8); x.lineTo(-z*.6,z*.05); x.closePath();
+      x.fill(); x.stroke(); x.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  resize(); draw();
+})();
+</script>
+</body>
+</html>
