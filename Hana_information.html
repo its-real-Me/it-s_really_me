@@ -8,7 +8,7 @@
 <script src="arg-core.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:#03080f;color:#c8d8e4;font-family:'Rajdhani',sans-serif;overflow-x:hidden;}
+html,body{min-height:100%;background:#03080f;color:#c8d8e4;font-family:'Rajdhani',sans-serif;overflow-x:hidden;}
 
 canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
 #vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
@@ -36,20 +36,159 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
   max-width:860px;margin:0 auto;padding:48px 24px 80px;
 }
 
+/* ── PORTRAIT STAGE ── */
+#portrait-stage{
+  position:relative;
+  width:320px;height:320px;
+  margin:0 auto 48px;
+  flex-shrink:0;
+}
+
+/* Burbujas orbitales alrededor del retrato */
+.orbit-bubble{
+  position:absolute;
+  border-radius:50%;
+  border:1.5px solid #e84e9a44;
+  background:rgba(4,10,22,.92);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  color:#e84e9a88;
+  animation:bubble-orbit linear infinite;
+  box-shadow:0 0 12px #e84e9a22;
+  overflow:hidden;
+  pointer-events:none;
+}
+.orbit-bubble span{font-size:inherit;position:relative;z-index:2;}
+
+/* Cada burbuja tiene tamaño, posición inicial y duración distintos */
+.ob1{width:48px;height:48px;font-size:13px;top:50%;left:50%;
+     --ox:130px;--oy:0px;animation-duration:8s;animation-delay:0s;}
+.ob2{width:38px;height:38px;font-size:11px;top:50%;left:50%;
+     --ox:-110px;--oy:-90px;animation-duration:10s;animation-delay:-2s;}
+.ob3{width:44px;height:44px;font-size:12px;top:50%;left:50%;
+     --ox:60px;--oy:120px;animation-duration:7s;animation-delay:-4s;}
+.ob4{width:36px;height:36px;font-size:10px;top:50%;left:50%;
+     --ox:-100px;--oy:80px;animation-duration:11s;animation-delay:-1s;}
+.ob5{width:42px;height:42px;font-size:12px;top:50%;left:50%;
+     --ox:20px;--oy:-125px;animation-duration:9s;animation-delay:-6s;}
+
+@keyframes bubble-orbit{
+  0%  {transform:translate(calc(var(--ox)*cos(0deg)   - var(--oy)*sin(0deg)   - 50%),calc(var(--ox)*sin(0deg)   + var(--oy)*cos(0deg)   - 50%));}
+  100%{transform:translate(calc(var(--ox)*cos(360deg) - var(--oy)*sin(360deg) - 50%),calc(var(--ox)*sin(360deg) + var(--oy)*cos(360deg) - 50%));}
+}
+
+/* Fallback con animación JS para compatibilidad */
+.orbit-bubble{transform:translate(-50%,-50%);}
+
+/* ── PORTRAIT ── */
+#portrait-wrap{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:200px;height:200px;
+  border-radius:50%;
+  border:2px solid #e84e9a55;
+  background:#0a1020;
+  box-shadow:0 0 40px #e84e9a33, 0 0 80px #e84e9a11;
+  overflow:hidden;
+  z-index:5;
+}
+#portrait-wrap img{
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:center top;
+  border-radius:50%;
+  filter:brightness(1.05) saturate(1.1);
+}
+
+/* ── GLITCH LAYERS sobre el rostro ── */
+#glitch-face{
+  position:absolute;inset:0;border-radius:50%;
+  pointer-events:none;z-index:10;overflow:hidden;
+}
+/* Banda principal */
+#glitch-face::before{
+  content:'';
+  position:absolute;
+  left:-5%;width:110%;
+  height:22%;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent 0,transparent 2px,
+    rgba(0,200,255,.22) 2px,rgba(0,200,255,.22) 3px
+  );
+  animation:gface-band 2.8s step-start infinite;
+  opacity:0;
+  mix-blend-mode:screen;
+}
+/* Desplazamiento de color (chromatic aberration) */
+#glitch-face::after{
+  content:'';
+  position:absolute;inset:0;border-radius:50%;
+  background:transparent;
+  animation:gface-chroma 3.5s step-start infinite;
+  mix-blend-mode:screen;
+  opacity:0;
+}
+/* Canvas de glitch sobre imagen */
+#glitch-canvas{
+  position:absolute;inset:0;
+  border-radius:50%;
+  width:100%;height:100%;
+  pointer-events:none;z-index:12;
+}
+
+@keyframes gface-band{
+  0%,60%,100%{opacity:0;top:10%;}
+  61%{opacity:.95;top:8%;}
+  64%{opacity:.7;top:48%;}
+  67%{opacity:.9;top:22%;}
+  70%{opacity:0;}
+  85%{opacity:.5;top:60%;}
+  87%{opacity:0;}
+}
+@keyframes gface-chroma{
+  0%,55%,100%{opacity:0;}
+  56%{opacity:1;box-shadow:inset -4px 0 0 rgba(255,0,100,.35),inset 4px 0 0 rgba(0,200,255,.35);}
+  59%{opacity:0;}
+  80%{opacity:.8;box-shadow:inset 6px 0 0 rgba(255,0,100,.2),inset -6px 0 0 rgba(0,200,255,.2);}
+  82%{opacity:0;}
+}
+
+/* Glitch estático permanente (sutil) */
+#static-glitch{
+  position:absolute;inset:0;border-radius:50%;z-index:11;
+  background:repeating-linear-gradient(
+    90deg,
+    transparent 0,transparent 4px,
+    rgba(232,78,154,.04) 4px,rgba(232,78,154,.04) 5px
+  );
+  pointer-events:none;
+  animation:static-shift 0.15s step-start infinite;
+}
+@keyframes static-shift{
+  0%{background-position:0 0;}
+  25%{background-position:2px 1px;}
+  50%{background-position:-1px 2px;}
+  75%{background-position:1px -1px;}
+  100%{background-position:0 0;}
+}
+
+/* Borde pulsante */
+#portrait-wrap{
+  animation:portrait-pulse 4s ease-in-out infinite;
+}
+@keyframes portrait-pulse{
+  0%,100%{box-shadow:0 0 28px #e84e9a33,0 0 0 3px #e84e9a22;}
+  50%{box-shadow:0 0 50px #e84e9a66,0 0 0 6px #e84e9a44;}
+}
+
 /* ── HEADER BLOCK ── */
 .file-header{
-  display:flex;align-items:flex-end;gap:32px;
-  border-bottom:1px solid #e84e9a22;padding-bottom:32px;margin-bottom:40px;
+  text-align:center;
+  border-bottom:1px solid #e84e9a22;
+  padding-bottom:32px;margin-bottom:40px;
 }
-.file-portrait{
-  flex-shrink:0;width:140px;height:140px;border-radius:50%;
-  border:2px solid #e84e9a55;
-  background:#0a1020;display:flex;align-items:center;justify-content:center;
-  font-size:3.5rem;color:#e84e9a55;font-family:'Cormorant Garamond',serif;
-  box-shadow:0 0 28px #e84e9a33;overflow:hidden;
-}
-.file-portrait img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.file-meta{flex:1;}
 .file-meta .classification{
   font-size:.6rem;letter-spacing:.3em;color:#e84e9a;text-transform:uppercase;margin-bottom:8px;
 }
@@ -90,15 +229,23 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
   margin-top:20px;
 }
 
-/* ── CLASSIFIED WATERMARK ── */
 .watermark{
   position:fixed;bottom:24px;right:28px;z-index:6;
   font-size:.55rem;letter-spacing:.25em;color:#e84e9a18;text-transform:uppercase;
   pointer-events:none;
 }
 
+/* ── STATS ── */
+.stats-grid-hana{display:flex;flex-direction:column;gap:10px;}
+.stat-row-h{display:flex;align-items:center;gap:10px;}
+.stat-name-h{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(200,180,220,.6);width:100px;flex-shrink:0;}
+.stat-bar-wrap-h{flex:1;height:3px;background:rgba(232,78,154,.1);overflow:hidden;}
+.stat-bar-h{height:100%;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.stat-val-h{font-size:11px;font-weight:600;color:#e84e9a;width:24px;text-align:right;flex-shrink:0;}
+
 @media(max-width:600px){
-  .file-header{flex-direction:column;align-items:center;text-align:center;}
+  #portrait-stage{width:260px;height:260px;}
+  #portrait-wrap{width:160px;height:160px;}
   .file-meta h1{font-size:2rem;}
   .info-grid{grid-template-columns:1fr 1fr;}
 }
@@ -117,8 +264,31 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
 
 <main id="content">
 
+  <!-- ── PORTRAIT CON GLITCH Y BURBUJAS ── -->
+  <div id="portrait-stage">
+
+    <!-- 5 burbujas orbitales -->
+    <div class="orbit-bubble ob1" id="ob1"><span>Ω</span></div>
+    <div class="orbit-bubble ob2" id="ob2"><span>0</span></div>
+    <div class="orbit-bubble ob3" id="ob3"><span>∅</span></div>
+    <div class="orbit-bubble ob4" id="ob4"><span>◈</span></div>
+    <div class="orbit-bubble ob5" id="ob5"><span>✦</span></div>
+
+    <!-- Retrato con glitch -->
+    <div id="portrait-wrap">
+      <img id="portrait-img"
+           src="data:image/jpeg;base64,${B64_HANA}"
+           alt="Hana"/>
+      <!-- Glitch sobre el rostro -->
+      <div id="glitch-face"></div>
+      <div id="static-glitch"></div>
+      <canvas id="glitch-canvas"></canvas>
+    </div>
+
+  </div>
+
+  <!-- ── HEADER ── -->
   <div class="file-header">
-    <div class="file-portrait" id="portrait">H</div>
     <div class="file-meta">
       <div class="classification">Expediente Nivel-Ω — Acceso Restringido</div>
       <h1>Hana</h1>
@@ -127,6 +297,7 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
     </div>
   </div>
 
+  <!-- ── DATOS ── -->
   <div class="section">
     <div class="section-label">Datos de identificación</div>
     <div class="info-grid">
@@ -137,6 +308,13 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
     </div>
   </div>
 
+  <!-- ── STATS ── -->
+  <div class="section">
+    <div class="section-label">Estadísticas</div>
+    <div class="stats-grid-hana" id="hana-stats"></div>
+  </div>
+
+  <!-- ── NARRATIVA ── -->
   <div class="section">
     <div class="section-label">Informe narrativo</div>
     <div class="narrative">
@@ -146,11 +324,13 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
     <div class="redacted">[ SECCIÓN 3-C SUPRIMIDA — AUTORIZACIÓN NIVEL-Ω REQUERIDA ]</div>
   </div>
 
+  <!-- ── OBSERVACIONES ── -->
   <div class="section">
     <div class="section-label">Observaciones adicionales</div>
     <div class="narrative">
-      <p>Esta página es un placeholder. Puedes editar <code>Hana_information.html</code> para agregar la historia, imágenes y datos reales del personaje.</p>
+      <p>Las anomalías registradas en torno a este sujeto superan cualquier parámetro conocido. Los instrumentos fallan. Los registros se corrompen. Quien la busca, ya fue encontrado.</p>
     </div>
+    <div class="redacted">[ SECCIÓN 7-A SUPRIMIDA — DATOS IRRECUPERABLES ]</div>
   </div>
 
 </main>
@@ -158,12 +338,137 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
 <div class="watermark">PROTOCOLO-0 // CLASIFICADO // PF-ARG</div>
 
 <script>
-// BG canvas (identical to personajes.html)
+// ── STATS HANA ──────────────────────────────────────────────────────────
+const HANA_STATS = [
+  {name:"Anomalía",    val:99,  color:"#e84e9a"},
+  {name:"Misterio",   val:100, color:"#c040a0"},
+  {name:"Influencia", val:88,  color:"#e84e9a"},
+  {name:"Voluntad",   val:95,  color:"#ff70cc"},
+  {name:"Percepción", val:92,  color:"#e84e9a"},
+  {name:"Peligro",    val:97,  color:"#ff3388"},
+];
+const sg = document.getElementById('hana-stats');
+HANA_STATS.forEach(s=>{
+  const row = document.createElement('div');
+  row.className = 'stat-row-h';
+  row.innerHTML = '<span class="stat-name-h">'+s.name+'</span>'
+    +'<div class="stat-bar-wrap-h"><div class="stat-bar-h" style="width:0%;background:'+s.color+'"></div></div>'
+    +'<span class="stat-val-h">'+s.val+'</span>';
+  sg.appendChild(row);
+  setTimeout(()=>{ const b=row.querySelector('.stat-bar-h'); if(b)b.style.width=s.val+'%'; }, 300);
+});
+
+// ── GLITCH CANVAS (sobre el rostro) ─────────────────────────────────────
+const glitchCanvas = document.getElementById('glitch-canvas');
+const gctx = glitchCanvas.getContext('2d');
+let glitchTimer = 0;
+
+function resizeGlitch(){
+  const wrap = document.getElementById('portrait-wrap');
+  glitchCanvas.width  = wrap.offsetWidth;
+  glitchCanvas.height = wrap.offsetHeight;
+}
+resizeGlitch();
+window.addEventListener('resize', resizeGlitch);
+
+function drawGlitch(t){
+  const W = glitchCanvas.width, H = glitchCanvas.height;
+  gctx.clearRect(0,0,W,H);
+
+  // Disparo aleatorio de glitch
+  if(Math.random() < 0.04){
+    glitchTimer = 6 + Math.floor(Math.random()*10);
+  }
+
+  if(glitchTimer > 0){
+    glitchTimer--;
+    const numBands = 2 + Math.floor(Math.random()*5);
+    for(let i=0; i<numBands; i++){
+      const y   = Math.random() * H;
+      const h   = 2 + Math.random() * 14;
+      const off = (Math.random()-.5) * 22;
+      // Desplazamiento horizontal
+      gctx.save();
+      gctx.globalAlpha = 0.35 + Math.random()*0.45;
+      // Cyan channel desplazado
+      gctx.globalCompositeOperation = 'screen';
+      gctx.fillStyle = 'rgba(0,220,255,0.5)';
+      gctx.fillRect(off+2, y, W, h);
+      // Magenta channel desplazado
+      gctx.fillStyle = 'rgba(255,0,120,0.5)';
+      gctx.fillRect(off-2, y, W, h);
+      gctx.restore();
+
+      // Banda de ruido
+      if(Math.random()<0.5){
+        gctx.save();
+        gctx.globalAlpha = 0.15 + Math.random()*0.2;
+        gctx.fillStyle = 'rgba(232,78,154,0.8)';
+        gctx.fillRect(0, y + h*0.6, W * Math.random(), 1.5);
+        gctx.restore();
+      }
+    }
+
+    // Bloque pixelado ocasional
+    if(Math.random()<0.3){
+      const bx = Math.random()*W*0.8;
+      const by = Math.random()*H*0.3 + H*0.1;
+      const bw = 20 + Math.random()*60;
+      const bh = 6  + Math.random()*20;
+      gctx.save();
+      gctx.globalAlpha = 0.4;
+      gctx.globalCompositeOperation = 'screen';
+      gctx.fillStyle = Math.random()>0.5 ? 'rgba(0,200,255,.7)' : 'rgba(255,40,120,.7)';
+      gctx.fillRect(bx, by, bw, bh);
+      gctx.restore();
+    }
+  }
+  requestAnimationFrame(drawGlitch);
+}
+drawGlitch(0);
+
+// ── BURBUJAS ORBITALES (JS para compatibilidad cross-browser) ────────────
+const bubbles = [
+  {id:'ob1', radius:145, speed: 0.0008, angle: 0,              size:48, symbol:'Ω'},
+  {id:'ob2', radius:135, speed:-0.0006, angle: Math.PI*0.4,    size:38, symbol:'0'},
+  {id:'ob3', radius:150, speed: 0.0005, angle: Math.PI*0.9,    size:44, symbol:'∅'},
+  {id:'ob4', radius:130, speed:-0.0007, angle: Math.PI*1.4,    size:36, symbol:'◈'},
+  {id:'ob5', radius:140, speed: 0.0009, angle: Math.PI*1.8,    size:42, symbol:'✦'},
+];
+
+// Centro del stage
+function getStageCenter(){
+  const stage = document.getElementById('portrait-stage');
+  const r = stage.getBoundingClientRect();
+  return { cx: r.width/2, cy: r.height/2 };
+}
+
+function tickBubbles(t){
+  const {cx,cy} = getStageCenter();
+  bubbles.forEach(b=>{
+    b.angle += b.speed;
+    const el = document.getElementById(b.id);
+    if(!el) return;
+    const x = cx + Math.cos(b.angle)*b.radius - b.size/2;
+    const y = cy + Math.sin(b.angle)*b.radius - b.size/2;
+    el.style.left = x.toFixed(1)+'px';
+    el.style.top  = y.toFixed(1)+'px';
+    el.style.transform = 'none';
+  });
+  requestAnimationFrame(tickBubbles);
+}
+requestAnimationFrame(tickBubbles);
+
+// ── BG CANVAS ────────────────────────────────────────────────────────────
 (function(){
   const c=document.getElementById('bg');
   const x=c.getContext('2d');
   let W,H,pts=[];
-  function resize(){ W=c.width=window.innerWidth; H=c.height=window.innerHeight; initPts(); }
+  function resize(){
+    W=c.width=window.innerWidth;
+    H=c.height=window.innerHeight;
+    initPts();
+  }
   function initPts(){
     pts=[];
     for(let i=0;i<28;i++) pts.push({
@@ -174,7 +479,6 @@ canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
   }
   function draw(){
     x.fillStyle='#030810'; x.fillRect(0,0,W,H);
-    if(!ARG.animEnabled()){ requestAnimationFrame(draw); return; }
     pts.forEach(s=>{
       s.x+=s.vx; s.y+=s.vy; s.rot+=.06;
       if(s.x<-30)s.x=W+30; if(s.x>W+30)s.x=-30;
