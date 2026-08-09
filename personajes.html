@@ -1054,6 +1054,432 @@ if(!STATE.codes)         STATE.codes = {};
 
 // ════════════════════════════════════════════════════════════════════
 //  ORBIT CONFIG
+//  Anillo 0: 5 Easter Eggs
+//  Anillo 1: 9 sujetos
+//  Anillo 2: 13 sujetos
+//  Anillo 3: 1 especial (Hana)
+// ════════════════════════════════════════════════════════════════════
+const RING_COUNTS = [5, 9, 13, 1];
+const RING_SPEEDS = [0.00026, -0.00018, 0.00013, 0.00007]; // 4 anillos, 4 velocidades
+let orbitAngles   = [0, 0, 0, 0]; // ← corregido: 4 elementos
+let bubbleData    = [];
+let panelOpen     = false;
+let selectedChar  = null;
+
+function getRingRadii(){
+  const d = Math.min(window.innerWidth, window.innerHeight);
+  return [d * 0.17, d * 0.29, d * 0.43, d * 0.60];
+}
+function getBubbleSizes(){ return [62, 66, 58, 78]; }
+
+// ════════════════════════════════════════════════════════════════════
+//  BUILD BUBBLES
+// ════════════════════════════════════════════════════════════════════
+function initBubbles(){
+  const stage = document.getElementById('orbit-stage');
+  stage.innerHTML = '';
+  bubbleData = [];
+  const sizes = getBubbleSizes();
+  let charIdx = 0;
+
+  RING_COUNTS.forEach((count, ri)=>{
+    for(let i=0; i<count; i++){
+      if(charIdx >= CHARACTERS.length) return;
+      const char = CHARACTERS[charIdx];
+      const isUnlocked = STATE.unlocked.includes(char.id);
+      const angleOffset = (i / count) * Math.PI * 2 + ri * 0.42;
+      const sz = sizes[ri];
+      const col = char.accentColor || '#4ec9e8';
+
+      const el = document.createElement('div');
+      el.className = 'bubble' + (isUnlocked ? '' : ' locked');
+      const isSpecial = !!char.redirect;
+      el.style.cssText = 'width:'+sz+'px;height:'+sz+'px;left:0;top:0;border-color:'+col+(isSpecial?'66':'28')+';';
+      if(isSpecial) el.classList.add('special-bubble');
+      if(isUnlocked) el.style.boxShadow = '0 0 10px '+col+'16';
+
+      if(isUnlocked && char.image){
+        const img = document.createElement('img');
+        img.src = char.image; img.alt = char.name||''; img.loading = 'lazy';
+        el.appendChild(img);
+      }
+
+      const letter = document.createElement('span');
+      letter.className = 'bubble-letter';
+      letter.textContent = (isUnlocked && char.name && char.name !== '???') ? char.name[0] : '?';
+      el.appendChild(letter);
+
+      if(!isUnlocked){
+        const glitch = document.createElement('div');
+        glitch.className = 'bubble-glitch';
+        const delay = (Math.random()*5).toFixed(2)+'s';
+        const dur   = (2.5+Math.random()*2.5).toFixed(2)+'s';
+        glitch.style.cssText = '--gdelay:'+delay+';--gd:'+dur;
+        el.appendChild(glitch);
+      }
+
+      el.addEventListener('click', ()=>{ ARG.sfx.open(); selectBubble(char, isUnlocked); });
+      stage.appendChild(el);
+      bubbleData.push({el, ring:ri, angleOffset, size:sz, char, isUnlocked});
+      charIdx++;
+    }
+  });
+
+  updateCount();
+}
+
+function updateCount(){
+  document.getElementById('tb-count').textContent =
+    STATE.unlocked.length + ' / ' + CHARACTERS.length + ' expedientes';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ORBIT ANIMATION TICK
+// ════════════════════════════════════════════════════════════════════
+function orbitTick(){
+  RING_SPEEDS.forEach((s,i)=>{ orbitAngles[i] += s; });
+
+  if(!panelOpen){
+    const cx = window.innerWidth/2;
+    const cy = window.innerHeight/2 + 20;
+    const radii = getRingRadii();
+    bubbleData.forEach(b=>{
+      const a = orbitAngles[b.ring] + b.angleOffset;
+      const x = cx + Math.cos(a)*radii[b.ring] - b.size/2;
+      const y = cy + Math.sin(a)*radii[b.ring] - b.size/2;
+      b.el.style.transform = 'translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
+    });
+  }
+  requestAnimationFrame(orbitTick);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  SELECT BUBBLE → OPEN PANEL
+// ════════════════════════════════════════════════════════════════════
+function selectBubble(char, isUnlocked){
+  selectedChar = char;
+  openPanel(char, isUnlocked);
+}
+
+function openPanel(char, isUnlocked){
+  panelOpen = true;
+
+  const railInner = document.getElementById('rail-inner');
+  railInner.innerHTML = '';
+  bubbleData.forEach(b=>{
+    b.el.classList.add('dimmed');
+    const rb = document.createElement('div');
+    const rUnlocked = STATE.unlocked.includes(b.char.id);
+    rb.className = 'rail-bubble'
+      + (rUnlocked ? '' : ' locked-rail')
+      + (b.char.id===char.id ? ' active-rail' : '');
+
+    if(rUnlocked && b.char.image){
+      const ri = document.createElement('img');
+      ri.src=b.char.image; ri.alt=b.char.name||''; ri.loading='lazy';
+      rb.appendChild(ri);
+    } else {
+      const rl = document.createElement('span');
+      rl.className='rail-letter';
+      rl.textContent = (rUnlocked && b.char.name && b.char.name!=='???') ? b.char.name[0] : '?';
+      rb.appendChild(rl);
+    }
+    rb.addEventListener('click', ()=>{
+      railInner.querySelectorAll('.rail-bubble').forEach(r=>r.classList.remove('active-rail'));
+      rb.classList.add('active-rail');
+      ARG.sfx.open();
+      openPanel(b.char, STATE.unlocked.includes(b.char.id));
+    });
+    railInner.appendChild(rb);
+  });
+
+  document.getElementById('rail').classList.add('open');
+
+  // Dock
+  const col = char.accentColor || '#4ec9e8';
+  document.getElementById('dock-ring').style.borderColor = col+'55';
+  document.getElementById('dock-ring').style.boxShadow  = '0 0 18px '+col+'22';
+  const dockImg    = document.getElementById('dock-img');
+  const dockLetter = document.getElementById('dock-ring-letter');
+  if(isUnlocked && char.image){
+    dockImg.src=char.image; dockImg.style.display='';
+    dockLetter.style.display='none';
+  } else {
+    dockImg.src=''; dockImg.style.display='none';
+    dockLetter.textContent='?'; dockLetter.style.display='';
+  }
+  const playerCode = STATE.codes?.[char.id];
+  document.getElementById('dock-codename').textContent =
+    char.codename + (playerCode ? ' // '+playerCode : '');
+  const ds = document.getElementById('dock-status-badge');
+  ds.textContent = {
+    vivo:'● Vivo', desaparecido:'◈ Desap.', muerto:'✕ Muerto',
+    desconocido:'? ???', fragmentado:'◇ Frag.'
+  }[char.status] || char.status;
+  ds.className = 'p-status-badge status-'+(char.status||'desconocido');
+
+  renderCard(char, isUnlocked);
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel(){
+  panelOpen = false;
+  selectedChar = null;
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('rail').classList.remove('open');
+  bubbleData.forEach(b=>b.el.classList.remove('dimmed'));
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  RENDER CARD
+// ════════════════════════════════════════════════════════════════════
+function renderCard(char, isUnlocked){
+  const hero      = document.getElementById('card-hero');
+  const statusbar = document.getElementById('card-statusbar');
+  const body      = document.getElementById('p-body');
+
+  if(!isUnlocked){
+    hero.style.display      = 'none';
+    statusbar.style.display = 'none';
+    body.innerHTML =
+      '<div id="card-locked">'
+      +'<p class="lv-title">Expediente clasificado</p>'
+      +'<p class="lv-desc">Encuentra el código de acceso en las pistas del ARG para desbloquear este expediente.</p>'
+      +'<input class="sys-input" id="lv-input" maxlength="25" placeholder="INGRESAR CÓDIGO" spellcheck="false" autocomplete="off"/>'
+      +'<p class="lv-msg" id="lv-msg"></p>'
+      +'<button class="btn" onclick="checkLvCode()">Desbloquear expediente →</button>'
+      +'</div>';
+    const inp = document.getElementById('lv-input');
+    inp.onkeydown = null;
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkLvCode(); });
+    return;
+  }
+
+  hero.style.display      = '';
+  statusbar.style.display = '';
+
+  // Hero canvas
+  const hc = document.getElementById('card-hero-canvas');
+  hc.width  = hc.offsetWidth || 500;
+  hc.height = 155;
+  drawHero(hc, char);
+
+  const heroImg = document.getElementById('card-hero-img');
+  const heroOvl = document.getElementById('card-hero-overlay');
+  if(char.image){
+    heroImg.classList.remove('loaded');
+    heroImg.src = char.image; heroImg.alt = char.name||'';
+    heroOvl.style.background = char.accentColor||'transparent';
+  } else {
+    heroImg.src=''; heroOvl.style.background='transparent';
+  }
+
+  const playerCode   = STATE.codes?.[char.id];
+  const fullCodename = char.codename + (playerCode ? ' // '+playerCode : '');
+  document.getElementById('card-codename').textContent    = fullCodename;
+  document.getElementById('card-name').textContent        = char.name||'???';
+  document.getElementById('card-role').textContent        = char.role||'';
+  document.getElementById('card-id').textContent          = fullCodename;
+  document.getElementById('card-unlock-date').textContent =
+    'Desbloqueado: ' + (STATE.unlockedDates?.[char.id]||'Archivado');
+
+  const badge = document.getElementById('card-status-badge');
+  badge.textContent = {
+    vivo:'● Vivo', desaparecido:'◈ Desaparecido', muerto:'✕ Muerto',
+    desconocido:'? Desconocido', fragmentado:'◇ Fragmentado'
+  }[char.status] || char.status;
+  badge.className = 'p-status-badge status-'+(char.status||'desconocido');
+
+  const loreHtml = (char.lore && char.lore.length)
+    ? char.lore.map(p=>'<p>'+p+'</p>').join('')
+    : '<p style="font-style:italic;opacity:.4">Historia no disponible.</p>';
+
+  const qiHtml = (char.quickInfo||[]).map(q=>{
+    const val = q.l==='Código' ? (STATE.codes?.[char.id]||'—') : q.v;
+    return '<div class="qi"><p class="qi-l">'+q.l+'</p><p class="qi-v">'+val+'</p></div>';
+  }).join('');
+
+  const fragsHtml = (char.fragments||[]).length
+    ? char.fragments.map(f=>
+        '<div class="fragment'+(f.locked?' locked-frag':'')+'"><p class="frag-num">'+f.id+'</p>'
+        +'<p class="'+(f.locked?'frag-lock':'frag-text')+'">'+f.text+'</p></div>'
+      ).join('')
+    : '<p style="font-size:11px;opacity:.3;font-style:italic">Sin fragmentos registrados.</p>';
+
+  const relsHtml = (char.relations && char.relations.length)
+    ? '<div class="p-section"><p class="sec-label">Relaciones conocidas</p><div class="rels">'
+      + char.relations.map(r=>
+          '<div class="rel"><span class="rel-name">'+r.name+'</span>'
+          +'<span class="rel-type">'+r.type+'</span></div>'
+        ).join('')
+      + '</div></div>'
+    : '';
+
+  body.innerHTML =
+    '<div class="p-section"><p class="sec-label">Historia</p><div class="p-lore">'+loreHtml+'</div></div>'
+    +'<div class="p-section-half"><p class="sec-label">Estadísticas</p><div class="stats-grid" id="stats-grid"></div></div>'
+    +'<div class="p-section-half"><p class="sec-label">Datos del expediente</p><div class="quick-info">'+qiHtml+'</div></div>'
+    +'<div class="p-section"><p class="sec-label">Fragmentos de memoria</p><div class="fragments-list">'+fragsHtml+'</div></div>'
+    + relsHtml;
+
+  const sg = document.getElementById('stats-grid');
+  if(sg)(char.stats||[]).forEach(s=>{
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = '<span class="stat-name">'+s.name+'</span>'
+      +'<div class="stat-bar-wrap"><div class="stat-bar" style="width:0%;background:'+s.color+'"></div></div>'
+      +'<span class="stat-val">'+s.val+'</span>';
+    sg.appendChild(row);
+    setTimeout(()=>{ const bar=row.querySelector('.stat-bar'); if(bar)bar.style.width=s.val+'%'; }, 100);
+  });
+
+  document.getElementById('panel-card').scrollTo({top:0, behavior:'smooth'});
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  DRAW HERO CANVAS
+// ════════════════════════════════════════════════════════════════════
+function drawHero(c, char){
+  const w=c.width, h=c.height;
+  if(!w||!h) return;
+  const ctx=c.getContext('2d');
+  const [bg1,bg2,accent]=char.heroColor||['#04090f','#08121e','#4ec9e8'];
+  ctx.fillStyle=bg1; ctx.fillRect(0,0,w,h);
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,bg2); g.addColorStop(1,bg1);
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle=accent+'18'; ctx.lineWidth=1;
+  [[.1,.0,.35,.8],[.45,.05,.6,.95],[.72,.1,.5,.9],[.85,.0,.95,.7]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1*w,y1*h); ctx.lineTo(x2*w,y2*h); ctx.stroke();
+  });
+  const gr=ctx.createRadialGradient(w*.15,h*.5,0,w*.15,h*.5,w*.4);
+  gr.addColorStop(0,accent+'15'); gr.addColorStop(1,'transparent');
+  ctx.fillStyle=gr; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=accent+'30';
+  for(let i=0;i<20;i++){
+    const px=Math.random()*w, py=Math.random()*h, ps=Math.random()*2+.5;
+    ctx.beginPath(); ctx.arc(px,py,ps,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  UNLOCK DESDE VISTA BLOQUEADA
+// ════════════════════════════════════════════════════════════════════
+function checkLvCode(){
+  const inp = document.getElementById('lv-input');
+  const msg = document.getElementById('lv-msg');
+  if(!inp||!msg||!selectedChar) return;
+  const raw = inp.value.trim().toUpperCase();
+  const val = ARG.hash(raw);
+  msg.style.color = 'rgba(78,201,232,.5)';
+  msg.textContent = 'Verificando...';
+  setTimeout(()=>{
+    const targetId = CHAR_CODES[val];
+    if(targetId){
+      STATE.codes[targetId] = raw;
+      if(!STATE.unlocked.includes(targetId)){
+        STATE.unlocked.push(targetId);
+        STATE.unlockedDates[targetId] = new Date().toLocaleDateString('es-MX',
+          {day:'2-digit',month:'short',year:'numeric'});
+      }
+      saveState(STATE);
+      msg.style.color='rgba(80,220,130,.9)';
+      msg.textContent='✓ Expediente desbloqueado';
+      ARG.sfx.success();
+      setTimeout(()=>{
+        const char = CHARACTERS.find(c=>c.id===targetId);
+        if(char){
+          if(char.redirect){ window.location.href = char.redirect; return; }
+          initBubbles();
+          openPanel(char, true);
+        }
+      }, 700);
+    } else {
+      msg.style.color='rgba(220,80,80,.8)';
+      msg.textContent='✗ Código no reconocido';
+      ARG.sfx.fail();
+      inp.value='';
+      setTimeout(()=>{ msg.textContent=''; }, 1600);
+    }
+  }, 500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  BG CANVAS
+// ════════════════════════════════════════════════════════════════════
+const bgC=document.getElementById('bg-canvas');
+const bgX=bgC.getContext('2d');
+let shards=[],parts=[];
+
+function initBg(){
+  bgC.width=window.innerWidth; bgC.height=window.innerHeight;
+  shards=Array.from({length:18},mkShard);
+  parts=Array.from({length:60},mkPart);
+}
+function mkShard(){
+  const W=bgC.width,H=bgC.height;
+  return{x:Math.random()*W,y:Math.random()*H,
+    vx:(Math.random()-.5)*.3,vy:.2+Math.random()*.5,
+    rot:Math.random()*360,rs:(Math.random()-.5)*.9,
+    sz:5+Math.random()*20,op:.05+Math.random()*.18};
+}
+function mkPart(){
+  const W=bgC.width,H=bgC.height;
+  return{x:Math.random()*W,y:Math.random()*H,
+    vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,
+    r:.6+Math.random()*1.8,op:.04+Math.random()*.18,ph:Math.random()*Math.PI*2};
+}
+function drawBg(){
+  const W=bgC.width,H=bgC.height;
+  if(!W||!H) return;
+  bgX.fillStyle='rgba(3,8,16,.15)'; bgX.fillRect(0,0,W,H);
+  parts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.ph+=.015;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    const op=p.op*(.5+.5*Math.sin(p.ph));
+    bgX.beginPath(); bgX.arc(p.x,p.y,p.r,0,Math.PI*2);
+    bgX.fillStyle='rgba(78,201,232,'+op.toFixed(3)+')'; bgX.fill();
+  });
+  shards.forEach(s=>{
+    s.y+=s.vy; s.x+=s.vx; s.rot+=s.rs;
+    if(s.y>H+30) Object.assign(s,mkShard(),{y:-30,x:Math.random()*W});
+    bgX.save(); bgX.translate(s.x,s.y); bgX.rotate(s.rot*Math.PI/180);
+    bgX.globalAlpha=s.op;
+    bgX.fillStyle='rgba(80,160,200,.08)';
+    bgX.strokeStyle='rgba(78,201,232,.35)'; bgX.lineWidth=.6;
+    const z=s.sz;
+    bgX.beginPath(); bgX.moveTo(0,-z); bgX.lineTo(z*.6,-z*.1);
+    bgX.lineTo(z*.4,z*.5); bgX.lineTo(-z*.2,z*.8); bgX.lineTo(-z*.6,z*.05);
+    bgX.closePath(); bgX.fill(); bgX.stroke(); bgX.restore();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePanel(); });
+
+// Resize: regenera fondo y burbujas
+window.addEventListener('resize', ()=>{ initBg(); initBubbles(); });
+
+initBg();
+initBubbles();
+
+(function bgLoop(){
+  if(ARG.animEnabled()){ drawBg(); }
+  else { bgX.fillStyle='#030810'; bgX.fillRect(0,0,bgC.width,bgC.height); }
+  requestAnimationFrame(bgLoop);
+})();
+
+requestAnimationFrame(orbitTick);
+
+// ════════════════════════════════════════════════════════════════════
+//  Sin auto-open — el usuario elige qué personaje ver
+// ════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+//  ORBIT CONFIG
 // ════════════════════════════════════════════════════════════════════
 // 5 + 9 + 13 = 27 bubbles across 3 rings
 const RING_COUNTS = [5, 9, 13, 1];
